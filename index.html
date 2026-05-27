@@ -444,17 +444,17 @@ function isFirebaseConfigured(){return true;}
 async function init(){
   buildMemberList();
   buildFunnelList();
-  window._useLocal=false;
-  setSyncStatus('syncing','接続中…');
 
-  // まずローカルデータで即座に画面を表示
+  // まずローカルで即座に表示
+  window._useLocal=true;
   const mk=sKey('asami','2026-03');
   if(!localGet(mk))localSet(mk,MARCH_SEED);
-  window._useLocal=true;
   await switchSheet();
+  setSyncStatus('ok','起動完了');
 
   // バックグラウンドでFirebase接続
   setTimeout(async()=>{
+    setSyncStatus('syncing','接続中…');
     const testOk=await remoteSet('__ping__',{t:Date.now()});
     if(testOk){
       window._useLocal=false;
@@ -467,7 +467,7 @@ async function init(){
     }else{
       setSyncStatus('err','⚠️ Firebase未接続');
     }
-  },100);
+  },500);
 }
 
 function tryConnectFirebase(){}
@@ -547,11 +547,10 @@ function switchPage(p,el){
 // SHEET LOAD
 // ═══════════════════════════════════════════
 async function switchSheet(){
-  setSyncStatus('syncing','読み込み中…');
   const loaded=await loadSheet(cm,document.getElementById('month-select').value);
   cd=loaded||blank();
-  paintForm();updateTopbar();
-  setSyncStatus('ok','同期済み');
+  paintForm();
+  updateTopbar();
 }
 
 function paintForm(){
@@ -639,7 +638,7 @@ function renderImpr(){
   const el=document.getElementById('improvement-list');
   const has=!!(N(cd.meetingSet)||N(cd.meetingDone)||N(cd.entry)||N(cd.funnel?.meeting));
   const kpis=currentKpiTargets();
-  const missed=kpis.filter(k=>has&&k.compute(cd)<k.target);
+  const missed=kpis.filter(k=>k.compute(cd)<k.target);
   if(!has){
     el.innerHTML=`<div class="all-clear" style="background:var(--surface2);border-color:var(--border);color:var(--text3);">数値を入力すると未達項目が表示されます</div>`;
     return;
@@ -648,14 +647,13 @@ function renderImpr(){
     el.innerHTML=`<div class="all-clear">🎉 全項目目標達成！最高です！</div>`;
     return;
   }
-  // 未達項目の改善策入力欄
   el.innerHTML=missed.map(k=>{
-    const a=k.compute(cd),gap=k.target-a,ex=cd.improvements[k.key]||'';
+    const a=k.compute(cd),gap=k.target-a,ex=cd.improvements?.[k.key]||'';
     return `<div class="impr-block">
       <div class="impr-lbl">⚠️ ${k.label}</div>
       <div class="impr-stats">実績 <strong>${a}${k.suffix}</strong> ／ 目標 ${k.target}${k.suffix} ／ 不足 <strong style="color:var(--amber)">${gap}${k.suffix}</strong></div>
       <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">▼ 原因と改善アクションを記入してください</div>
-      <textarea class="as-ta" rows="3" placeholder="① なぜ未達だったか（根本原因）&#10;② 来月何を変えるか（具体アクション）" oninput="cd.improvements['${k.key}']=this.value">${esc(ex)}</textarea>
+      <textarea class="as-ta" rows="3" placeholder="① なぜ未達だったか（根本原因）&#10;② 来月何を変えるか（具体アクション）" oninput="if(!cd.improvements)cd.improvements={};cd.improvements['${k.key}']=this.value">${esc(ex)}</textarea>
     </div>`;
   }).join('');
 }
