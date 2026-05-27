@@ -207,7 +207,7 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
       <div id="sync-dot"></div>
       <span id="sync-label">—</span>
     </div>
-    <select class="month-sel" id="month-select" onchange="switchSheet();">
+    <select class="month-sel" id="month-select" onchange="saveLastState();switchSheet();">
       <option value="2026-02">2026年2月</option>
       <option value="2026-03">2026年3月</option>
       <option value="2026-04" selected>2026年4月</option>
@@ -521,7 +521,7 @@ function buildMemberList(){
       <span class="mname">${m.name}</span>
     </div>`).join('');
 }
-function selectMember(id){cm=id;buildMemberList();updateTopbar();switchSheet();}
+function selectMember(id){cm=id;buildMemberList();updateTopbar();saveLastState();switchSheet();}
 function updateTopbar(){
   const m=MEMBERS.find(x=>x.id===cm);
   document.getElementById('topbar-name').textContent=m.name;
@@ -571,6 +571,7 @@ function onNumInput(){
   cd.meetingDone=nob(document.getElementById('m-meeting-done').value);
   cd.entry=nob(document.getElementById('m-entry').value);
   updateAuto();renderKpi();renderImpr();
+  triggerAutoSave();
 }
 function nob(v){return v===''?'':Number(v);}
 function updateAuto(){
@@ -595,6 +596,7 @@ function onFunnelInput(key){
   const v=document.getElementById('fi-'+key).value;
   cd.funnel[key]=v===''?'':Number(v);
   updateFunnelBars();renderKpi();renderImpr();
+  triggerAutoSave();
 }
 function updateFunnelBars(){
   const max=Math.max(...FUNNEL_STAGES.map(s=>N(cd.funnel[s.key])),1);
@@ -783,12 +785,55 @@ function showToast(type,msg){
 }
 
 // ═══════════════════════════════════════════
-// TEXTAREA SYNC
+// AUTO-SAVE (デバウンス 1.5秒)
 // ═══════════════════════════════════════════
-document.getElementById('next-commitment').addEventListener('input',e=>{cd.nextCommitment=e.target.value;});
-document.getElementById('next-kpi').addEventListener('input',e=>{cd.nextKpi=e.target.value;});
+let autoSaveTimer=null;
+function triggerAutoSave(){
+  if(autoSaveTimer)clearTimeout(autoSaveTimer);
+  autoSaveTimer=setTimeout(async()=>{
+    const month=document.getElementById('month-select').value;
+    const ok=await saveSheet_remote(cm,month,cd);
+    if(ok){
+      setSyncStatus('ok','🟢 自動保存済み');
+      setTimeout(()=>setSyncStatus('ok','🟢 全員と同期中'),2000);
+    }
+  },1500);
+}
+
+// ═══════════════════════════════════════════
+// LAST STATE (メンバー・月を記憶)
+// ═══════════════════════════════════════════
+function saveLastState(){
+  localStorage.setItem('actlog_last_member',cm);
+  localStorage.setItem('actlog_last_month',document.getElementById('month-select').value);
+}
+function restoreLastState(){
+  const lastMember=localStorage.getItem('actlog_last_member');
+  const lastMonth=localStorage.getItem('actlog_last_month');
+  if(lastMember&&MEMBERS.find(m=>m.id===lastMember)){
+    cm=lastMember;
+  }
+  if(lastMonth){
+    const sel=document.getElementById('month-select');
+    const opt=[...sel.options].find(o=>o.value===lastMonth);
+    if(opt)sel.value=lastMonth;
+  }
+}
+
+// ═══════════════════════════════════════════
+// TEXTAREA SYNC + AUTO-SAVE
+// ═══════════════════════════════════════════
+document.getElementById('next-commitment').addEventListener('input',e=>{
+  cd.nextCommitment=e.target.value;
+  triggerAutoSave();
+});
+document.getElementById('next-kpi').addEventListener('input',e=>{
+  cd.nextKpi=e.target.value;
+  triggerAutoSave();
+});
 
 // ─── BOOT ───
+restoreLastState();
 init();
 </script>
 </body>
