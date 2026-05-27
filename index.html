@@ -1,0 +1,797 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>ACT/LOG — 月次アクションシート</title>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Syne:wght@600;700;800&family=Noto+Sans+JP:wght@400;500;700&display=swap" rel="stylesheet"/>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.js"></script>
+<style>
+*,*::before,*::after{box-sizing:border-box;margin:0;padding:0}
+:root{
+  --bg:#F7F7FA;--surface:#FFFFFF;--surface2:#F2F2F6;--surface3:#E8E8EF;
+  --border:#E0E0EA;--border2:#C8C8D8;
+  --text:#18181F;--text2:#60607A;--text3:#A0A0B8;
+  --accent:#5A4FD4;--accent-light:#EEF0FF;--accent-mid:#7B6FF0;
+  --green:#0EA56A;--green-bg:#EDFAF4;--green-border:#B6EDD8;
+  --amber:#C47E00;--amber-bg:#FFF8E6;--amber-border:#F0D080;
+  --red:#D03030;--radius:10px;--radius-lg:14px;
+  --shadow:0 1px 4px rgba(0,0,0,.07),0 4px 16px rgba(0,0,0,.05);
+}
+body{font-family:'Noto Sans JP',sans-serif;background:var(--bg);color:var(--text);min-height:100vh;overflow-x:hidden;}
+body::before{content:'';position:fixed;inset:0;background-image:radial-gradient(circle,#C8C8D8 1px,transparent 1px);background-size:28px 28px;opacity:.4;pointer-events:none;z-index:0;}
+#app{position:relative;z-index:1;display:flex;height:100vh;}
+
+/* SIDEBAR */
+#sidebar{width:216px;flex-shrink:0;background:var(--surface);border-right:1px solid var(--border);display:flex;flex-direction:column;overflow:hidden;}
+.sidebar-logo{padding:22px 20px 14px;border-bottom:1px solid var(--border);}
+.logo-mark{font-family:'Syne',sans-serif;font-size:16px;font-weight:800;letter-spacing:.08em;color:var(--text);display:flex;align-items:center;gap:8px;}
+.logo-pip{width:9px;height:9px;border-radius:50%;background:var(--accent);}
+.logo-sub{font-size:10px;color:var(--text3);letter-spacing:.1em;margin-top:3px;font-family:'Syne',sans-serif;}
+.sb-sec{padding:16px 14px 4px;font-size:10px;color:var(--text3);letter-spacing:.1em;font-weight:500;}
+.nav-item{display:flex;align-items:center;gap:9px;padding:9px 12px;border-radius:var(--radius);margin:1px 8px;cursor:pointer;font-size:13px;color:var(--text2);transition:.15s;border:1px solid transparent;}
+.nav-item:hover{background:var(--surface2);}
+.nav-item.active{background:var(--accent-light);border-color:rgba(90,79,212,.18);color:var(--accent);font-weight:500;}
+.nav-icon{font-size:15px;}
+.sb-members{margin-top:auto;}
+.sb-sec-m{padding:14px 14px 4px;font-size:10px;color:var(--text3);letter-spacing:.1em;font-weight:500;}
+.member-list{padding:0 8px 14px;}
+.mchip{display:flex;align-items:center;gap:9px;padding:7px 10px;border-radius:var(--radius);cursor:pointer;transition:.15s;margin-bottom:2px;border:1px solid transparent;}
+.mchip:hover{background:var(--surface2);}
+.mchip.active{background:var(--surface2);border-color:var(--border2);}
+.mavatar{width:28px;height:28px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:12px;font-weight:700;flex-shrink:0;}
+.mname{font-size:13px;color:var(--text);font-weight:500;}
+
+/* MAIN */
+#main{flex:1;overflow-y:auto;display:flex;flex-direction:column;}
+#main::-webkit-scrollbar{width:4px;}
+#main::-webkit-scrollbar-thumb{background:var(--surface3);border-radius:999px;}
+
+/* TOPBAR */
+#topbar{background:var(--surface);border-bottom:1px solid var(--border);padding:12px 28px;display:flex;align-items:center;gap:12px;position:sticky;top:0;z-index:10;}
+.topbar-title{font-family:'Syne',sans-serif;font-size:16px;font-weight:700;}
+.topbar-badge{display:flex;align-items:center;gap:6px;background:var(--surface2);border:1px solid var(--border);border-radius:999px;padding:4px 12px 4px 6px;font-size:12px;color:var(--text2);}
+.tbav{width:20px;height:20px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:10px;font-weight:700;}
+/* sync indicator */
+#sync-dot{width:8px;height:8px;border-radius:50%;background:#ccc;transition:background .3s;flex-shrink:0;}
+#sync-dot.ok{background:var(--green);}
+#sync-dot.err{background:var(--red);}
+#sync-dot.syncing{background:var(--amber);animation:pulse 1s infinite;}
+@keyframes pulse{0%,100%{opacity:1;}50%{opacity:.4;}}
+#sync-label{font-size:11px;color:var(--text3);}
+select.month-sel{margin-left:auto;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:6px 10px;font-size:13px;color:var(--text);font-family:'Noto Sans JP',sans-serif;cursor:pointer;box-shadow:var(--shadow);}
+select.month-sel:focus{outline:none;border-color:var(--accent);}
+.save-btn{display:flex;align-items:center;gap:6px;background:var(--accent);color:#fff;border:none;border-radius:var(--radius);padding:8px 18px;font-size:13px;font-family:'Noto Sans JP',sans-serif;cursor:pointer;transition:.15s;font-weight:500;box-shadow:0 2px 8px rgba(90,79,212,.25);}
+.save-btn:hover{background:#4A3FC4;transform:translateY(-1px);}
+.save-btn:active{transform:scale(.97);}
+.save-btn:disabled{opacity:.5;cursor:not-allowed;transform:none;}
+
+/* PAGES */
+.page{display:none;padding:24px 28px;animation:fadeUp .2s ease;}
+.page.active{display:block;}
+@keyframes fadeUp{from{opacity:0;transform:translateY(6px);}to{opacity:1;transform:translateY(0);}}
+
+/* CARD */
+.card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:22px 24px;margin-bottom:16px;box-shadow:var(--shadow);}
+.card-title{font-family:'Syne',sans-serif;font-size:14px;font-weight:700;letter-spacing:.04em;color:var(--text);display:flex;align-items:center;gap:7px;margin-bottom:3px;}
+.card-sub{font-size:11px;color:var(--text3);margin-bottom:18px;}
+
+/* SUMMARY */
+.sum-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;}
+.sum-cell{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius);padding:14px 16px;transition:border-color .15s;}
+.sum-cell:focus-within{border-color:var(--accent);background:#FAFAFE;}
+.sum-lbl{font-size:10px;color:var(--text3);letter-spacing:.06em;display:block;margin-bottom:6px;font-weight:500;}
+.sum-inp{background:transparent;border:none;font-size:30px;font-weight:700;color:var(--text);font-family:'Syne',sans-serif;width:100%;outline:none;line-height:1;}
+.sum-inp::placeholder{color:var(--text3);}
+.sum-auto{font-size:30px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);line-height:1;}
+.sum-unit{font-size:11px;color:var(--text3);margin-top:4px;}
+
+/* KPI */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;}
+.kpi-card{border-radius:var(--radius-lg);padding:16px 18px;position:relative;overflow:hidden;border:1px solid var(--border);background:var(--surface2);}
+.kpi-card.hit{background:var(--green-bg);border-color:var(--green-border);}
+.kpi-card.miss{background:var(--amber-bg);border-color:var(--amber-border);}
+.kpi-badge{display:inline-flex;align-items:center;gap:4px;font-size:10px;border-radius:999px;padding:2px 9px;margin-bottom:10px;font-weight:700;letter-spacing:.05em;}
+.kpi-badge.hit{background:#C8F5E2;color:var(--green);}
+.kpi-badge.miss{background:#FFE8A0;color:var(--amber);}
+.kpi-badge.none{background:var(--surface3);color:var(--text3);}
+.kpi-lbl{font-size:11px;color:var(--text2);margin-bottom:5px;}
+.kpi-val{font-size:32px;font-weight:700;font-family:'Syne',sans-serif;line-height:1;}
+.kpi-val.hit{color:var(--green);}
+.kpi-val.miss{color:var(--amber);}
+.kpi-val.none{color:var(--text);}
+.kpi-tgt{font-size:10px;color:var(--text3);margin-top:5px;}
+.kpi-bar-bg{height:3px;background:var(--surface3);border-radius:999px;margin-top:12px;overflow:hidden;}
+.kpi-bar-fill{height:100%;border-radius:999px;transition:width .6s cubic-bezier(.23,1,.32,1);}
+.kpi-bar-fill.hit{background:var(--green);}
+.kpi-bar-fill.miss{background:var(--amber);}
+.kpi-emoji{position:absolute;right:12px;top:12px;font-size:22px;}
+
+/* FUNNEL */
+.funnel-row{display:flex;align-items:center;gap:10px;padding:10px 0;border-bottom:1px solid var(--border);}
+.funnel-row:last-child{border-bottom:none;}
+.funnel-lbl{width:118px;font-size:13px;color:var(--text2);flex-shrink:0;}
+.funnel-bar-bg{flex:1;height:5px;background:var(--surface3);border-radius:999px;overflow:hidden;}
+.funnel-bar-fill{height:100%;background:var(--accent);border-radius:999px;transition:width .4s cubic-bezier(.23,1,.32,1);}
+.funnel-inp{width:68px;background:var(--surface2);border:1px solid var(--border);border-radius:8px;padding:6px 10px;font-size:15px;font-weight:700;color:var(--text);font-family:'Syne',sans-serif;text-align:right;outline:none;transition:border-color .15s;}
+.funnel-inp:focus{border-color:var(--accent);}
+.funnel-rate{width:44px;font-size:11px;color:var(--text3);text-align:right;flex-shrink:0;}
+
+/* IMPROVEMENT */
+.impr-block{background:var(--amber-bg);border:1px solid var(--amber-border);border-left:3px solid var(--amber);border-radius:var(--radius);padding:14px 16px;margin-bottom:10px;}
+.impr-lbl{font-size:12px;font-weight:700;color:var(--amber);margin-bottom:2px;}
+.impr-stats{font-size:11px;color:var(--text3);margin-bottom:8px;}
+.as-ta{width:100%;background:var(--surface);border:1px solid var(--border);border-radius:8px;padding:10px 12px;font-family:'Noto Sans JP',sans-serif;font-size:13px;color:var(--text);line-height:1.7;resize:vertical;outline:none;transition:border-color .15s;}
+.as-ta:focus{border-color:var(--accent);}
+.as-ta::placeholder{color:var(--text3);}
+.all-clear{background:var(--green-bg);border:1px solid var(--green-border);border-radius:var(--radius);padding:18px;text-align:center;font-size:13px;color:var(--green);font-weight:500;}
+
+/* NEXT ACTION */
+.next-grid{display:grid;grid-template-columns:1fr 1fr;gap:14px;}
+@media(max-width:680px){.next-grid{grid-template-columns:1fr;}}
+.next-block{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;}
+.next-blk-title{font-size:12px;font-weight:700;color:var(--text2);display:flex;align-items:center;gap:7px;margin-bottom:10px;letter-spacing:.04em;}
+.next-icon{width:24px;height:24px;border-radius:7px;display:flex;align-items:center;justify-content:center;font-size:13px;}
+
+/* TEAM BOARD */
+.team-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(280px,1fr));gap:14px;}
+.team-card{background:var(--surface);border:1px solid var(--border);border-radius:var(--radius-lg);padding:18px 20px;box-shadow:var(--shadow);}
+.team-card-head{display:flex;align-items:center;gap:10px;margin-bottom:14px;padding-bottom:12px;border-bottom:1px solid var(--border);}
+.team-avatar{width:36px;height:36px;border-radius:50%;display:flex;align-items:center;justify-content:center;font-size:14px;font-weight:700;flex-shrink:0;}
+.team-name{font-size:15px;font-weight:700;color:var(--text);}
+.team-month{font-size:11px;color:var(--text3);}
+.team-kpi-row{display:flex;flex-direction:column;gap:7px;}
+.team-kpi-item{display:flex;align-items:center;justify-content:space-between;font-size:12px;}
+.team-kpi-lbl{color:var(--text2);width:80px;flex-shrink:0;}
+.team-kpi-val{font-size:16px;font-weight:700;font-family:'Syne',sans-serif;width:56px;text-align:right;flex-shrink:0;}
+.team-kpi-val.hit{color:var(--green);}
+.team-kpi-val.miss{color:var(--amber);}
+.team-kpi-bar-bg{flex:1;height:4px;background:var(--surface3);border-radius:999px;margin:0 10px;overflow:hidden;}
+.team-kpi-bar-fill{height:100%;border-radius:999px;}
+.team-score{display:flex;align-items:center;gap:6px;margin-top:12px;padding-top:10px;border-top:1px solid var(--border);font-size:11px;color:var(--text3);}
+.team-score-val{font-size:18px;font-weight:700;font-family:'Syne',sans-serif;}
+
+/* COMPARE */
+.compare-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(148px,1fr));gap:10px;}
+.cmp-card{background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:14px 16px;}
+.cmp-lbl{font-size:11px;color:var(--text3);margin-bottom:4px;}
+.cmp-val{font-size:28px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);}
+.cmp-diff{font-size:12px;display:flex;align-items:center;gap:3px;margin-top:2px;}
+.chart-wrap{position:relative;width:100%;height:230px;margin-top:10px;}
+
+/* LOADING OVERLAY */
+#loading{position:fixed;inset:0;background:rgba(247,247,250,.85);display:flex;flex-direction:column;align-items:center;justify-content:center;z-index:999;gap:12px;font-size:13px;color:var(--text2);}
+#loading.hidden{display:none;}
+.spinner{width:32px;height:32px;border:2px solid var(--border2);border-top-color:var(--accent);border-radius:50%;animation:spin .7s linear infinite;}
+@keyframes spin{to{transform:rotate(360deg);}}
+
+/* TOAST */
+#toast{position:fixed;bottom:22px;right:22px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 18px;font-size:13px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.12);transform:translateY(60px);opacity:0;transition:all .3s cubic-bezier(.23,1,.32,1);z-index:9999;display:flex;align-items:center;gap:8px;}
+#toast.show{transform:translateY(0);opacity:1;}
+#toast.success{border-color:var(--green-border);color:var(--green);}
+#toast.error{border-color:#FFCCCC;color:var(--red);}
+</style>
+</head>
+<body>
+
+<!-- LOADING -->
+<div id="loading"><div class="spinner"></div><span id="loading-msg">データを読み込んでいます…</span></div>
+
+<div id="app">
+<!-- SIDEBAR -->
+<nav id="sidebar">
+  <div class="sidebar-logo">
+    <div class="logo-mark"><span class="logo-pip"></span>ACT/LOG</div>
+    <div class="logo-sub">MONTHLY ACTION SHEET</div>
+  </div>
+  <div class="sb-sec">MENU</div>
+  <div class="nav-item active" data-page="input" onclick="switchPage('input',this)"><span class="nav-icon">✏️</span>入力</div>
+  <div class="nav-item" data-page="team" onclick="switchPage('team',this)"><span class="nav-icon">👥</span>チーム全体</div>
+  <div class="nav-item" data-page="compare" onclick="switchPage('compare',this)"><span class="nav-icon">🔁</span>前月比較</div>
+  <div class="sb-members">
+    <div class="sb-sec-m">MEMBER</div>
+    <div class="member-list" id="member-list"></div>
+  </div>
+</nav>
+
+<!-- MAIN -->
+<div id="main">
+  <div id="topbar">
+    <div class="topbar-title" id="topbar-title">入力</div>
+    <div class="topbar-badge" id="topbar-badge">
+      <div class="tbav" id="topbar-av"></div>
+      <span id="topbar-name">—</span>
+    </div>
+    <!-- sync indicator -->
+    <div style="display:flex;align-items:center;gap:5px;margin-left:8px;">
+      <div id="sync-dot"></div>
+      <span id="sync-label">—</span>
+    </div>
+    <select class="month-sel" id="month-select" onchange="switchSheet();">
+      <option value="2026-02">2026年2月</option>
+      <option value="2026-03">2026年3月</option>
+      <option value="2026-04" selected>2026年4月</option>
+      <option value="2026-05">2026年5月</option>
+      <option value="2026-06">2026年6月</option>
+    </select>
+    <button class="save-btn" id="save-btn" onclick="saveSheet()">💾 保存</button>
+  </div>
+
+  <!-- INPUT PAGE -->
+  <div class="page active" id="page-input">
+    <div class="card">
+      <div class="card-title">📊 月次サマリー</div>
+      <div class="card-sub">当月の主要数値を入力</div>
+      <div class="sum-grid">
+        <div class="sum-cell"><label class="sum-lbl">面談獲得数</label><input class="sum-inp" type="number" min="0" id="m-meeting-set" placeholder="0" oninput="onNumInput()"/><div class="sum-unit">件</div></div>
+        <div class="sum-cell"><label class="sum-lbl">面談実施数</label><input class="sum-inp" type="number" min="0" id="m-meeting-done" placeholder="0" oninput="onNumInput()"/><div class="sum-unit">件</div></div>
+        <div class="sum-cell"><label class="sum-lbl">面談実施率</label><div class="sum-auto" id="m-meeting-rate">—</div><div class="sum-unit">%</div></div>
+        <div class="sum-cell"><label class="sum-lbl">エントリー数</label><input class="sum-inp" type="number" min="0" id="m-entry" placeholder="0" oninput="onNumInput()"/><div class="sum-unit">件</div></div>
+        <div class="sum-cell"><label class="sum-lbl">エントリー率</label><div class="sum-auto" id="m-entry-rate">—</div><div class="sum-unit">%</div></div>
+      </div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🎯 目標達成状況</div>
+      <div class="card-sub">達成は緑 👌、未達は黄色 ⚠️</div>
+      <div class="kpi-grid" id="kpi-grid"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🔽 成果フロー分解</div>
+      <div class="card-sub">当月の各工程通過人数と歩留り（自動計算）</div>
+      <div id="funnel-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">💡 改善策</div>
+      <div class="card-sub">目標未達の項目に対しての打ち手</div>
+      <div id="improvement-list"></div>
+    </div>
+
+    <div class="card">
+      <div class="card-title">🚀 次月アクション設計</div>
+      <div class="card-sub">来月の動き方を今月中に決める</div>
+      <div class="next-grid">
+        <div class="next-block">
+          <div class="next-blk-title"><div class="next-icon" style="background:#EEF0FF;">🏆</div>公約</div>
+          <textarea id="next-commitment" class="as-ta" rows="5" placeholder="公約とする数値目標と設計（なぜその数字か、どう積み上げるか）"></textarea>
+        </div>
+        <div class="next-block">
+          <div class="next-blk-title"><div class="next-icon" style="background:#EDFAF4;">📌</div>行動KPI</div>
+          <textarea id="next-kpi" class="as-ta" rows="5" placeholder="週次・日次の具体行動量（架電数、面談獲得数、訴求トーク回数など）"></textarea>
+        </div>
+      </div>
+    </div>
+  </div>
+
+  <!-- TEAM PAGE -->
+  <div class="page" id="page-team">
+    <div class="card" style="margin-bottom:20px;">
+      <div class="card-title">👥 チーム全体 — 今月の達成状況</div>
+      <div class="card-sub" id="team-sub">メンバーごとの目標達成状況を一覧で確認</div>
+    </div>
+    <div class="team-grid" id="team-grid"></div>
+  </div>
+
+  <!-- COMPARE PAGE -->
+  <div class="page" id="page-compare">
+    <div class="card">
+      <div class="card-title">🔁 前月との比較</div>
+      <div class="card-sub" id="compare-sub">—</div>
+      <div class="compare-grid" id="compare-grid"></div>
+    </div>
+    <div class="card">
+      <div class="card-title">📈 推移グラフ</div>
+      <div class="card-sub" id="trend-sub">保存済みのデータが積み上がると伸びます</div>
+      <div style="display:flex;gap:14px;flex-wrap:wrap;font-size:11px;color:var(--text3);margin-bottom:4px;">
+        <span><span style="display:inline-block;width:10px;height:10px;background:#5A4FD4;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>面談獲得数</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#0EA56A;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>面談実施数</span>
+        <span><span style="display:inline-block;width:10px;height:10px;background:#D85A30;border-radius:2px;margin-right:4px;vertical-align:middle;"></span>エントリー数</span>
+      </div>
+      <div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
+    </div>
+  </div>
+</div>
+</div>
+
+<div id="toast"><span id="toast-msg"></span></div>
+
+<script>
+// ═══════════════════════════════════════════
+// CONSTANTS
+// ═══════════════════════════════════════════
+const MEMBERS=[
+  {id:'asami',name:'浅見',initial:'浅',color:'#5A4FD4',bg:'#EEF0FF'},
+  {id:'nomura',name:'野村',initial:'野',color:'#0EA56A',bg:'#EDFAF4'},
+  {id:'toya',name:'戸谷',initial:'戸',color:'#C47E00',bg:'#FFF8E6'},
+  {id:'satake',name:'佐竹',initial:'佐',color:'#D03030',bg:'#FFF0F0'}
+];
+const FUNNEL_STAGES=[
+  {key:'meeting',label:'面談数'},
+  {key:'entry',label:'エントリー'},
+  {key:'briefing',label:'説明会参加'},
+  {key:'first',label:'1次面接通過'},
+  {key:'middle',label:'中間面接通過'},
+  {key:'final',label:'最終面接通過'},
+  {key:'offer',label:'内定'},
+  {key:'accept',label:'承諾'}
+];
+// KPI定義（compute のみ。target はメンバー×月で別管理）
+const KPI_DEF=[
+  {key:'meetingSet', label:'面談獲得数', suffix:'件', emoji:'📞',
+    compute:d=>N(d.meetingSet)},
+  {key:'meetingDone',label:'面談実施数', suffix:'件', emoji:'🤝',
+    compute:d=>N(d.meetingDone)},
+  {key:'meetingRate',label:'面談実施率', suffix:'%',  emoji:'🎯',
+    compute:d=>{const s=N(d.meetingSet),dn=N(d.meetingDone);return s>0?rnd(dn/s*100):0;}},
+  {key:'entryRate',  label:'エントリー率',suffix:'%', emoji:'✉️',
+    compute:d=>{const dn=N(d.meetingDone),e=N(d.entry);return dn>0?rnd(e/dn*100):0;}},
+  {key:'finalRate',  label:'最終選考率', suffix:'%',  emoji:'🏆',
+    compute:d=>{const m=N(d.funnel?.meeting),f=N(d.funnel?.final);return m>0?rnd(f/m*100):0;}}
+];
+
+// メンバー × 月 の個別目標テーブル
+// キーなし = デフォルト値を使用
+const MEMBER_TARGETS={
+  // ── 佐竹 ──────────────────────────────────
+  satake:{
+    '2026-05':{meetingSet:25, meetingDone:10, meetingRate:40, entryRate:70, finalRate:30},
+    '2026-06':{meetingSet:50, meetingDone:20, meetingRate:40, entryRate:70, finalRate:30},
+  },
+  // ── 野村 ──────────────────────────────────
+  nomura:{
+    default:{meetingSet:30, meetingDone:24, meetingRate:80, entryRate:70, finalRate:30},
+  },
+};
+
+// デフォルト目標（未設定メンバー・月に適用）
+const DEFAULT_TARGETS={
+  meetingSet:100, meetingDone:40, meetingRate:40, entryRate:70, finalRate:30
+};
+
+// 特定メンバー・月の目標を返す
+function getTargets(memberId, month){
+  const mt=MEMBER_TARGETS[memberId];
+  if(!mt) return {...DEFAULT_TARGETS};
+  // 月別設定があればそれ、なければ default、なければ全体デフォルト
+  return {...DEFAULT_TARGETS,...(mt.default||{}),...(mt[month]||{})};
+}
+
+// 後方互換：KPI_TARGETS が必要な箇所向けに現在の cm/month から生成
+function currentKpiTargets(){
+  const month=document.getElementById('month-select')?.value||'2026-04';
+  const tgt=getTargets(cm,month);
+  return KPI_DEF
+    .filter(k=>tgt[k.key]!==null && tgt[k.key]!==undefined)
+    .map(k=>({...k, target:tgt[k.key]}));
+}
+const MARCH_SEED={
+  meetingSet:52,meetingDone:22,entry:15,
+  funnel:{meeting:22,entry:15,briefing:10,first:0,middle:0,final:2,offer:0,accept:0},
+  improvements:{},nextCommitment:'',nextKpi:''
+};
+const POLL_INTERVAL=10000;
+
+// ═══════════════════════════════════════════
+// UTILS
+// ═══════════════════════════════════════════
+const N=v=>Number(v)||0;
+const rnd=v=>Math.round(v);
+const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+const sKey=(m,mo)=>`${m}__${mo}`;
+const blank=()=>({meetingSet:'',meetingDone:'',entry:'',funnel:FUNNEL_STAGES.reduce((o,s)=>(o[s.key]='',o),{}),improvements:{},nextCommitment:'',nextKpi:''});
+
+// ═══════════════════════════════════════════
+// FIREBASE REALTIME DATABASE (REST API)
+// ═══════════════════════════════════════════
+const FB_URL='https://acsyon-63f0a-default-rtdb.asia-southeast1.firebasedatabase.app';
+
+async function remoteGet(key){
+  try{
+    const r=await fetch(`${FB_URL}/sheets/${key}.json`);
+    if(!r.ok)return null;
+    const j=await r.json();
+    return j;
+  }catch{return null;}
+}
+async function remoteSet(key,data){
+  try{
+    const r=await fetch(`${FB_URL}/sheets/${key}.json`,{
+      method:'PUT',
+      headers:{'Content-Type':'application/json'},
+      body:JSON.stringify(data)
+    });
+    return r.ok;
+  }catch{return false;}
+}
+function isConfigured(){return true;}
+
+// ═══════════════════════════════════════════
+// MEMORY CACHE
+// ═══════════════════════════════════════════
+const cache={};
+async function loadSheet(m,mo){
+  const k=sKey(m,mo);
+  if(cache[k]!==undefined)return cache[k];
+  const remote=window._useLocal ? localGet(k) : await remoteGet(k);
+  cache[k]=remote;
+  return remote;
+}
+async function saveSheet_remote(m,mo,data){
+  const k=sKey(m,mo);
+  cache[k]=data;
+  return window._useLocal ? localSet(k,data) : await remoteSet(k,data);
+}
+
+// ═══════════════════════════════════════════
+// STATE
+// ═══════════════════════════════════════════
+let cm='asami';
+let cd=blank();
+let pollTimer=null;
+
+// ═══════════════════════════════════════════
+// LOCAL FALLBACK
+// ═══════════════════════════════════════════
+function localGet(key){try{const r=localStorage.getItem('actlog:'+key);return r?JSON.parse(r):null;}catch{return null;}}
+function localSet(key,data){try{localStorage.setItem('actlog:'+key,JSON.stringify(data));return true;}catch{return false;}}
+function isFirebaseConfigured(){return true;}
+
+// ═══════════════════════════════════════════
+// BOOT
+// ═══════════════════════════════════════════
+async function init(){
+  setSyncStatus('syncing','接続中…');
+  buildMemberList();
+  buildFunnelList();
+  window._useLocal=false;
+
+  // Firebase接続確認
+  try{
+    const test=await remoteGet('__ping__');
+    // 繋がった（nullでもOK、エラーでなければ接続成功）
+    const mk=sKey('asami','2026-03');
+    const ex=await remoteGet(mk);
+    if(!ex)await remoteSet(mk,MARCH_SEED);
+    await switchSheet();
+    document.getElementById('loading').classList.add('hidden');
+    setSyncStatus('ok','🟢 全員と同期中');
+    startPolling();
+  }catch(e){
+    // Firebase繋がらない場合はローカルで動作
+    window._useLocal=true;
+    const mk=sKey('asami','2026-03');
+    if(!localGet(mk))localSet(mk,MARCH_SEED);
+    await switchSheet();
+    document.getElementById('loading').classList.add('hidden');
+    setSyncStatus('err','⚠️ オフライン — ローカル保存中');
+  }
+}
+
+function tryConnectFirebase(){}
+
+// ═══════════════════════════════════════════
+// SYNC STATUS UI
+// ═══════════════════════════════════════════
+function setSyncStatus(state,label){
+  const dot=document.getElementById('sync-dot');
+  dot.className='';dot.classList.add(state);
+  document.getElementById('sync-label').textContent=label;
+}
+
+// ═══════════════════════════════════════════
+// POLLING — refresh current view every N seconds
+// ═══════════════════════════════════════════
+function startPolling(){
+  if(pollTimer)clearInterval(pollTimer);
+  pollTimer=setInterval(async()=>{
+    const month=document.getElementById('month-select').value;
+    // invalidate cache for current member/month so we re-fetch
+    delete cache[sKey(cm,month)];
+    // also invalidate all members for team page
+    MEMBERS.forEach(m=>delete cache[sKey(m.id,month)]);
+    const activePage=document.querySelector('.nav-item.active')?.dataset?.page;
+    if(activePage==='input'){
+      const fresh=await remoteGet(sKey(cm,month));
+      if(fresh){
+        // only repaint if data changed vs what we have
+        const freshStr=JSON.stringify(fresh);
+        const currStr=JSON.stringify(cd);
+        if(freshStr!==currStr){
+          cd=fresh;cacheSet(sKey(cm,month),fresh);
+          paintForm();
+          setSyncStatus('ok','更新あり — 反映しました');
+          setTimeout(()=>setSyncStatus('ok','同期済み'),3000);
+        }
+      }
+    }
+    if(activePage==='team')renderTeam();
+  },POLL_INTERVAL);
+}
+
+// ═══════════════════════════════════════════
+// MEMBER
+// ═══════════════════════════════════════════
+function buildMemberList(){
+  document.getElementById('member-list').innerHTML=MEMBERS.map(m=>`
+    <div class="mchip ${m.id===cm?'active':''}" onclick="selectMember('${m.id}')">
+      <div class="mavatar" style="background:${m.bg};color:${m.color};">${m.initial}</div>
+      <span class="mname">${m.name}</span>
+    </div>`).join('');
+}
+function selectMember(id){cm=id;buildMemberList();updateTopbar();switchSheet();}
+function updateTopbar(){
+  const m=MEMBERS.find(x=>x.id===cm);
+  document.getElementById('topbar-name').textContent=m.name;
+  const av=document.getElementById('topbar-av');
+  av.textContent=m.initial;av.style.background=m.bg;av.style.color=m.color;
+}
+
+// ═══════════════════════════════════════════
+// PAGE SWITCH
+// ═══════════════════════════════════════════
+function switchPage(p,el){
+  document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
+  el.classList.add('active');
+  document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
+  document.getElementById('page-'+p).classList.add('active');
+  const t={input:'入力',team:'チーム全体',compare:'前月比較'};
+  document.getElementById('topbar-title').textContent=t[p]||p;
+  if(p==='team')renderTeam();
+  if(p==='compare'){renderCompare();renderTrendChart();}
+}
+
+// ═══════════════════════════════════════════
+// SHEET LOAD
+// ═══════════════════════════════════════════
+async function switchSheet(){
+  setSyncStatus('syncing','読み込み中…');
+  const loaded=await loadSheet(cm,document.getElementById('month-select').value);
+  cd=loaded||blank();
+  paintForm();updateTopbar();
+  setSyncStatus('ok','同期済み');
+}
+
+function paintForm(){
+  document.getElementById('m-meeting-set').value=cd.meetingSet??'';
+  document.getElementById('m-meeting-done').value=cd.meetingDone??'';
+  document.getElementById('m-entry').value=cd.entry??'';
+  document.getElementById('next-commitment').value=cd.nextCommitment||'';
+  document.getElementById('next-kpi').value=cd.nextKpi||'';
+  FUNNEL_STAGES.forEach(s=>{const inp=document.getElementById('fi-'+s.key);if(inp)inp.value=cd.funnel[s.key]??'';});
+  updateAuto();renderKpi();renderImpr();updateFunnelBars();
+}
+
+// ═══════════════════════════════════════════
+// INPUT HANDLERS
+// ═══════════════════════════════════════════
+function onNumInput(){
+  cd.meetingSet=nob(document.getElementById('m-meeting-set').value);
+  cd.meetingDone=nob(document.getElementById('m-meeting-done').value);
+  cd.entry=nob(document.getElementById('m-entry').value);
+  updateAuto();renderKpi();renderImpr();
+}
+function nob(v){return v===''?'':Number(v);}
+function updateAuto(){
+  const s=N(cd.meetingSet),dn=N(cd.meetingDone),e=N(cd.entry);
+  document.getElementById('m-meeting-rate').textContent=s>0?rnd(dn/s*100)+'':'—';
+  document.getElementById('m-entry-rate').textContent=dn>0?rnd(e/dn*100)+'':'—';
+}
+
+// ═══════════════════════════════════════════
+// FUNNEL
+// ═══════════════════════════════════════════
+function buildFunnelList(){
+  document.getElementById('funnel-list').innerHTML=FUNNEL_STAGES.map((s,i)=>`
+    <div class="funnel-row">
+      <div class="funnel-lbl">${s.label}</div>
+      <div class="funnel-bar-bg"><div class="funnel-bar-fill" id="fb-${s.key}" style="width:0%"></div></div>
+      <input class="funnel-inp" type="number" min="0" id="fi-${s.key}" placeholder="0" oninput="onFunnelInput('${s.key}')"/>
+      <div class="funnel-rate" id="fr-${s.key}">${i===0?'—':'—%'}</div>
+    </div>`).join('');
+}
+function onFunnelInput(key){
+  const v=document.getElementById('fi-'+key).value;
+  cd.funnel[key]=v===''?'':Number(v);
+  updateFunnelBars();renderKpi();renderImpr();
+}
+function updateFunnelBars(){
+  const max=Math.max(...FUNNEL_STAGES.map(s=>N(cd.funnel[s.key])),1);
+  FUNNEL_STAGES.forEach((s,i)=>{
+    const v=N(cd.funnel[s.key]);
+    const bar=document.getElementById('fb-'+s.key);
+    const rate=document.getElementById('fr-'+s.key);
+    if(bar)bar.style.width=(v/max*100)+'%';
+    if(i===0){if(rate)rate.textContent='—';return;}
+    const prev=N(cd.funnel[FUNNEL_STAGES[i-1].key]);
+    if(rate)rate.textContent=prev>0?rnd(v/prev*100)+'%':'—%';
+  });
+}
+
+// ═══════════════════════════════════════════
+// KPI CARDS
+// ═══════════════════════════════════════════
+function renderKpi(){
+  const has=!!(N(cd.meetingSet)||N(cd.meetingDone)||N(cd.entry));
+  const kpis=currentKpiTargets();
+  document.getElementById('kpi-grid').innerHTML=kpis.map(k=>{
+    const a=k.compute(cd),hit=a>=k.target;
+    const cls=has?(hit?'hit':'miss'):'';
+    const pct=k.target>0?Math.min(100,rnd(a/k.target*100)):0;
+    const bl=cls||'none',blLabel=cls==='hit'?'ACHIEVED ✓':cls==='miss'?'未達':'—';
+    const emoji=cls==='hit'?'<div class="kpi-emoji">👌</div>':'';
+    return `<div class="kpi-card ${cls}">${emoji}
+      <div class="kpi-badge ${bl}">${blLabel}</div>
+      <div class="kpi-lbl">${k.emoji} ${k.label}</div>
+      <div class="kpi-val ${cls||'none'}">${a}<span style="font-size:14px;font-family:'Noto Sans JP'">${k.suffix}</span></div>
+      <div class="kpi-tgt">目標 ${k.target}${k.suffix}</div>
+      <div class="kpi-bar-bg"><div class="kpi-bar-fill ${cls}" style="width:${pct}%"></div></div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// IMPROVEMENT
+// ═══════════════════════════════════════════
+function renderImpr(){
+  const el=document.getElementById('improvement-list');
+  const has=!!(N(cd.meetingSet)||N(cd.meetingDone)||N(cd.entry)||N(cd.funnel?.meeting));
+  const kpis=currentKpiTargets();
+  const missed=kpis.filter(k=>has&&k.compute(cd)<k.target);
+  if(!has){
+    el.innerHTML=`<div class="all-clear" style="background:var(--surface2);border-color:var(--border);color:var(--text3);">数値を入力すると未達項目が表示されます</div>`;
+    return;
+  }
+  if(!missed.length){
+    el.innerHTML=`<div class="all-clear">🎉 全項目目標達成！最高です！</div>`;
+    return;
+  }
+  // 未達項目の改善策入力欄
+  el.innerHTML=missed.map(k=>{
+    const a=k.compute(cd),gap=k.target-a,ex=cd.improvements[k.key]||'';
+    return `<div class="impr-block">
+      <div class="impr-lbl">⚠️ ${k.label}</div>
+      <div class="impr-stats">実績 <strong>${a}${k.suffix}</strong> ／ 目標 ${k.target}${k.suffix} ／ 不足 <strong style="color:var(--amber)">${gap}${k.suffix}</strong></div>
+      <div style="font-size:11px;color:var(--text3);margin-bottom:8px;">▼ 原因と改善アクションを記入してください</div>
+      <textarea class="as-ta" rows="3" placeholder="① なぜ未達だったか（根本原因）&#10;② 来月何を変えるか（具体アクション）" oninput="cd.improvements['${k.key}']=this.value">${esc(ex)}</textarea>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// SAVE → SHARED STORAGE
+// ═══════════════════════════════════════════
+async function saveSheet(){
+  cd.nextCommitment=document.getElementById('next-commitment').value;
+  cd.nextKpi=document.getElementById('next-kpi').value;
+  const btn=document.getElementById('save-btn');
+  btn.disabled=true;btn.textContent='保存中…';
+  setSyncStatus('syncing','保存中…');
+  const month=document.getElementById('month-select').value;
+  const ok=await saveSheet_remote(cm,month,cd);
+  btn.disabled=false;btn.innerHTML='💾 保存';
+  if(ok){
+    setSyncStatus('ok','保存完了');
+    showToast('success','✓ 保存しました — 全員の画面に反映されます');
+  }else{
+    setSyncStatus('err','保存失敗');
+    showToast('error','保存に失敗しました');
+  }
+  setTimeout(()=>setSyncStatus('ok','同期済み'),4000);
+}
+
+// ═══════════════════════════════════════════
+// TEAM BOARD
+// ═══════════════════════════════════════════
+async function renderTeam(){
+  const month=document.getElementById('month-select').value;
+  document.getElementById('team-sub').textContent=`${month.replace('-','年')}月 ・ 4名の達成状況`;
+  // load all members in parallel
+  const allData=await Promise.all(MEMBERS.map(m=>loadSheet(m.id,month)));
+  document.getElementById('team-grid').innerHTML=MEMBERS.map((m,i)=>{
+    const d=allData[i]||blank();
+    const has=!!(N(d.meetingSet)||N(d.meetingDone)||N(d.entry));
+    const kpis=KPI_DEF.map(k=>{const tgt=getTargets(m.id,month);return tgt[k.key]!=null?{...k,target:tgt[k.key]}:null;}).filter(Boolean);
+    const scores=kpis.map(k=>({k,a:k.compute(d),hit:has&&k.compute(d)>=k.target}));
+    const hitCount=scores.filter(s=>s.hit).length,total=scores.length;
+    return `<div class="team-card">
+      <div class="team-card-head">
+        <div class="team-avatar" style="background:${m.bg};color:${m.color};">${m.initial}</div>
+        <div><div class="team-name">${m.name}</div><div class="team-month">${month.replace('-','年')}月</div></div>
+        <div style="margin-left:auto;font-size:22px;">${!has?'':hitCount===total?'🎉':hitCount>=2?'💪':'😤'}</div>
+      </div>
+      <div class="team-kpi-row">
+        ${scores.map(s=>{
+          const pct=s.k.target>0?Math.min(100,rnd(s.a/s.k.target*100)):0;
+          const cls=has?(s.hit?'hit':'miss'):'';
+          return `<div class="team-kpi-item">
+            <span class="team-kpi-lbl">${s.k.label}</span>
+            <div class="team-kpi-bar-bg"><div class="team-kpi-bar-fill" style="width:${pct}%;background:${s.hit?'#0EA56A':'#C47E00'}"></div></div>
+            <span class="team-kpi-val ${cls}">${s.a}${s.k.suffix}</span>
+          </div>`;
+        }).join('')}
+      </div>
+      <div class="team-score">
+        達成項目:&nbsp;<span class="team-score-val" style="color:${hitCount===total?'#0EA56A':hitCount>=2?'#5A4FD4':'#C47E00'}">${has?hitCount+' / '+total:'— / '+total}</span>
+        &nbsp;${has&&hitCount===total?'🏆 全達成！':''}
+      </div>
+    </div>`;
+  }).join('');
+}
+
+// ═══════════════════════════════════════════
+// COMPARE + TREND
+// ═══════════════════════════════════════════
+async function renderCompare(){
+  const month=document.getElementById('month-select').value;
+  const [y,mo]=month.split('-').map(Number);
+  const pd=new Date(y,mo-2,1);
+  const pm=`${pd.getFullYear()}-${String(pd.getMonth()+1).padStart(2,'0')}`;
+  const m=MEMBERS.find(x=>x.id===cm);
+  document.getElementById('compare-sub').textContent=`${m.name}さん  ${month.replace('-','年')}月 vs ${pm.replace('-','年')}月`;
+  document.getElementById('trend-sub').textContent=`${m.name}さんの過去月推移`;
+  const[curr,prev]=await Promise.all([loadSheet(cm,month),loadSheet(cm,pm)]);
+  const grid=document.getElementById('compare-grid');
+  if(!prev){grid.innerHTML=`<div style="grid-column:1/-1;padding:20px;background:var(--surface2);border-radius:var(--radius);text-align:center;font-size:13px;color:var(--text3);">前月のデータがまだありません</div>`;return;}
+  const er=d=>{const dn=N(d?.meetingDone),e=N(d?.entry);return dn>0?rnd(e/dn*100):0;};
+  const mr=d=>{const s=N(d?.meetingSet),dn=N(d?.meetingDone);return s>0?rnd(dn/s*100):0;};
+  const mets=[
+    {l:'面談獲得数',c:N(curr?.meetingSet),p:N(prev.meetingSet),sx:''},
+    {l:'面談実施数',c:N(curr?.meetingDone),p:N(prev.meetingDone),sx:''},
+    {l:'エントリー数',c:N(curr?.entry),p:N(prev.entry),sx:''},
+    {l:'面談実施率',c:mr(curr||blank()),p:mr(prev),sx:'%'},
+    {l:'エントリー率',c:er(curr||blank()),p:er(prev),sx:'%'}
+  ];
+  grid.innerHTML=mets.map(m=>{
+    const d=m.c-m.p,s=d>0?'+':'',col=d>0?'#0EA56A':d<0?'#D03030':'#A0A0B8',ar=d>0?'↑':d<0?'↓':'→';
+    return `<div class="cmp-card"><div class="cmp-lbl">${m.l}</div><div class="cmp-val">${m.c}${m.sx}</div><div class="cmp-diff" style="color:${col}">${ar} ${s}${d}${m.sx} <span style="color:var(--text3);">前月比</span></div></div>`;
+  }).join('');
+}
+
+let tChart;
+async function renderTrendChart(){
+  const month=document.getElementById('month-select').value;
+  // get all months up to selected month for this member
+  const allMonths=['2026-02','2026-03','2026-04','2026-05','2026-06'].filter(mo=>mo<=month);
+  const ds=await Promise.all(allMonths.map(mo=>loadSheet(cm,mo)));
+  const labels=allMonths.map(mo=>mo.replace('2026-','').replace(/^0/,'')+' 月');
+  if(tChart)tChart.destroy();
+  tChart=new Chart(document.getElementById('trend-chart'),{
+    type:'bar',
+    data:{labels,datasets:[
+      {label:'面談獲得数',data:ds.map(d=>N(d?.meetingSet)),backgroundColor:'#5A4FD4',borderRadius:4},
+      {label:'面談実施数',data:ds.map(d=>N(d?.meetingDone)),backgroundColor:'#0EA56A',borderRadius:4},
+      {label:'エントリー数',data:ds.map(d=>N(d?.entry)),backgroundColor:'#D85A30',borderRadius:4}
+    ]},
+    options:{responsive:true,maintainAspectRatio:false,
+      plugins:{legend:{display:false}},
+      scales:{
+        x:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#A0A0B8',font:{size:11}}},
+        y:{grid:{color:'rgba(0,0,0,0.04)'},ticks:{color:'#A0A0B8',font:{size:11}},beginAtZero:true}
+      }}
+  });
+}
+
+// ═══════════════════════════════════════════
+// TOAST
+// ═══════════════════════════════════════════
+function showToast(type,msg){
+  const t=document.getElementById('toast');
+  document.getElementById('toast-msg').textContent=msg;
+  t.className='show '+type;
+  setTimeout(()=>{t.className='';},4000);
+}
+
+// ═══════════════════════════════════════════
+// TEXTAREA SYNC
+// ═══════════════════════════════════════════
+document.getElementById('next-commitment').addEventListener('input',e=>{cd.nextCommitment=e.target.value;});
+document.getElementById('next-kpi').addEventListener('input',e=>{cd.nextKpi=e.target.value;});
+
+// ─── BOOT ───
+init();
+</script>
+</body>
+</html>
