@@ -175,8 +175,7 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
 </head>
 <body>
 
-<!-- LOADING -->
-<div id="loading"><div class="spinner"></div><span id="loading-msg">データを読み込んでいます…</span></div>
+<!-- LOADING REMOVED -->
 
 <div id="app">
 <!-- SIDEBAR -->
@@ -446,29 +445,29 @@ async function init(){
   buildMemberList();
   buildFunnelList();
   window._useLocal=false;
-
-  // ローディング非表示にして即起動
-  document.getElementById('loading').classList.add('hidden');
   setSyncStatus('syncing','接続中…');
 
-  // Firebase接続テスト（PUTして確認）
-  const testOk=await remoteSet('__ping__',{t:Date.now()});
-  if(testOk){
-    // 接続成功
-    const mk=sKey('asami','2026-03');
-    const ex=await remoteGet(mk);
-    if(!ex)await remoteSet(mk,MARCH_SEED);
-    await switchSheet();
-    setSyncStatus('ok','🟢 全員と同期中');
-    startPolling();
-  }else{
-    // 接続失敗 → ローカル
-    window._useLocal=true;
-    const mk=sKey('asami','2026-03');
-    if(!localGet(mk))localSet(mk,MARCH_SEED);
-    await switchSheet();
-    setSyncStatus('err','⚠️ Firebase未接続');
-  }
+  // まずローカルデータで即座に画面を表示
+  const mk=sKey('asami','2026-03');
+  if(!localGet(mk))localSet(mk,MARCH_SEED);
+  window._useLocal=true;
+  await switchSheet();
+
+  // バックグラウンドでFirebase接続
+  setTimeout(async()=>{
+    const testOk=await remoteSet('__ping__',{t:Date.now()});
+    if(testOk){
+      window._useLocal=false;
+      const ex=await remoteGet(mk);
+      if(!ex)await remoteSet(mk,MARCH_SEED);
+      Object.keys(cache).forEach(k=>delete cache[k]);
+      await switchSheet();
+      setSyncStatus('ok','🟢 全員と同期中');
+      startPolling();
+    }else{
+      setSyncStatus('err','⚠️ Firebase未接続');
+    }
+  },100);
 }
 
 function tryConnectFirebase(){}
