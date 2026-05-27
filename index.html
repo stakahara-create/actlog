@@ -487,23 +487,21 @@ function setSyncStatus(state,label){
 function startPolling(){
   if(pollTimer)clearInterval(pollTimer);
   pollTimer=setInterval(async()=>{
+    if(isEditing)return; // 編集中はスキップ
     const month=document.getElementById('month-select').value;
-    // invalidate cache for current member/month so we re-fetch
     delete cache[sKey(cm,month)];
-    // also invalidate all members for team page
     MEMBERS.forEach(m=>delete cache[sKey(m.id,month)]);
     const activePage=document.querySelector('.nav-item.active')?.dataset?.page;
     if(activePage==='input'){
       const fresh=await remoteGet(sKey(cm,month));
       if(fresh){
-        // only repaint if data changed vs what we have
         const freshStr=JSON.stringify(fresh);
         const currStr=JSON.stringify(cd);
         if(freshStr!==currStr){
           cd=fresh;cache[sKey(cm,month)]=fresh;
           paintForm();
-          setSyncStatus('ok','更新あり — 反映しました');
-          setTimeout(()=>setSyncStatus('ok','同期済み'),3000);
+          setSyncStatus('ok','🔄 他のメンバーが更新しました');
+          setTimeout(()=>setSyncStatus('ok','🟢 全員と同期中'),3000);
         }
       }
     }
@@ -788,14 +786,22 @@ function showToast(type,msg){
 // AUTO-SAVE (デバウンス 1.5秒)
 // ═══════════════════════════════════════════
 let autoSaveTimer=null;
+let isEditing=false;
+
 function triggerAutoSave(){
+  isEditing=true; // 編集中フラグ → ポーリングによる上書きを防ぐ
   if(autoSaveTimer)clearTimeout(autoSaveTimer);
   autoSaveTimer=setTimeout(async()=>{
     const month=document.getElementById('month-select').value;
     const ok=await saveSheet_remote(cm,month,cd);
     if(ok){
       setSyncStatus('ok','🟢 自動保存済み');
-      setTimeout(()=>setSyncStatus('ok','🟢 全員と同期中'),2000);
+      setTimeout(()=>{
+        setSyncStatus('ok','🟢 全員と同期中');
+        isEditing=false; // 保存完了後にポーリング再開
+      },2000);
+    }else{
+      isEditing=false;
     }
   },1500);
 }
