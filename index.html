@@ -259,11 +259,13 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
           <label class="promise-lbl">公約目標</label>
           <input class="promise-inp" type="number" id="f-promise-tgt" placeholder="0" oninput="onFieldInput('promiseTgt',this.value)"/>
           <div class="promise-unit">円</div>
+          <div id="fmt-promise-tgt" style="font-size:11px;color:var(--accent);margin-top:2px;font-weight:500;"></div>
         </div>
         <div class="promise-cell">
           <label class="promise-lbl">広告費用</label>
           <input class="promise-inp" type="number" id="f-adcost" placeholder="0" oninput="onFieldInput('adcost',this.value)"/>
           <div class="promise-unit">円</div>
+          <div id="fmt-adcost" style="font-size:11px;color:var(--accent);margin-top:2px;font-weight:500;"></div>
         </div>
         <div class="promise-cell" style="background:var(--accent-light);border-color:rgba(90,79,212,.2);">
           <label class="promise-lbl" style="color:var(--accent);">目標金額（自動合算）</label>
@@ -274,6 +276,7 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
           <label class="promise-lbl">実績金額</label>
           <input class="promise-inp" type="number" id="f-promise" placeholder="0" oninput="onFieldInput('promise',this.value)"/>
           <div class="promise-unit">円</div>
+          <div id="fmt-promise" style="font-size:11px;color:var(--green);margin-top:2px;font-weight:500;"></div>
         </div>
         <div class="promise-cell" id="promise-rate-cell">
           <label class="promise-lbl">進捗率</label>
@@ -672,6 +675,10 @@ function paintForm(){
 function updatePromiseRate(){
   const tgt=N(cd.promiseTgt), ad=N(cd.adcost), act=N(cd.promise);
   const total=tgt+ad;
+  // 各入力欄の下にカンマ付き金額を表示
+  setFmtDisp('fmt-promise-tgt', tgt);
+  setFmtDisp('fmt-adcost', ad);
+  setFmtDisp('fmt-promise', act);
   // 目標金額合算表示
   const totalEl=document.getElementById('promise-total-disp');
   if(totalEl)totalEl.textContent=total>0?'¥'+total.toLocaleString():'—';
@@ -685,6 +692,11 @@ function updatePromiseRate(){
   rateEl.style.color=rate>=100?'var(--green)':'var(--amber)';
   if(cell)cell.style.background=rate>=100?'var(--green-bg)':'var(--amber-bg)';
 }
+function setFmtDisp(id,v){
+  const el=document.getElementById(id);
+  if(!el)return;
+  el.textContent=v>0?'¥'+v.toLocaleString():'';
+}
 function setVal(id,v){
   const el=document.getElementById(id);
   if(el&&!isEditing)el.value=(v===''||v===null||v===undefined)?'':v;
@@ -693,7 +705,7 @@ function setVal(id,v){
 // ═══ INPUTS ═══
 function onFieldInput(field,val){
   cd[field]=val===''?'':Number(val);
-  if(field==='promise'||field==='promiseTgt')updatePromiseRate();
+  if(field==='promise'||field==='promiseTgt'||field==='adcost')updatePromiseRate();
   triggerAutoSave();
 }
 function onNumInput(){
