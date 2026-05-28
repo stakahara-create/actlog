@@ -265,32 +265,29 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
       <div class="promise-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
         <div class="promise-cell" onclick="activateMoneyInput('f-promise-tgt')" style="cursor:text;">
           <label class="promise-lbl">公約目標</label>
-          <div class="money-disp promise-disp" id="disp-f-promise-tgt" style="font-size:22px;">${N(0)>0?N(0).toLocaleString():'—'}</div>
-          <input type="number" id="f-promise-tgt" placeholder="0"
-            style="position:absolute;opacity:0;pointer-events:none;font-size:22px;font-weight:700;font-family:'Syne',sans-serif;width:80%;border:none;background:transparent;outline:none;color:var(--text);"
+          <div id="disp-f-promise-tgt" style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);min-height:32px;">—</div>
+          <input type="number" id="f-promise-tgt" placeholder="0" style="display:none;"
             oninput="onFieldInput('promiseTgt',this.value)"
             onblur="deactivateMoneyInput('f-promise-tgt')"/>
           <div class="promise-unit">円</div>
         </div>
         <div class="promise-cell" onclick="activateMoneyInput('f-adcost')" style="cursor:text;">
           <label class="promise-lbl">広告費用</label>
-          <div class="money-disp promise-disp" id="disp-f-adcost" style="font-size:22px;">—</div>
-          <input type="number" id="f-adcost" placeholder="0"
-            style="position:absolute;opacity:0;pointer-events:none;font-size:22px;font-weight:700;font-family:'Syne',sans-serif;width:80%;border:none;background:transparent;outline:none;color:var(--text);"
+          <div id="disp-f-adcost" style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);min-height:32px;">—</div>
+          <input type="number" id="f-adcost" placeholder="0" style="display:none;"
             oninput="onFieldInput('adcost',this.value)"
             onblur="deactivateMoneyInput('f-adcost')"/>
           <div class="promise-unit">円</div>
         </div>
         <div class="promise-cell" style="background:var(--accent-light);border-color:rgba(90,79,212,.2);">
           <label class="promise-lbl" style="color:var(--accent);">目標金額（自動合算）</label>
-          <div id="promise-total-disp" style="font-size:22px;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif;">—</div>
+          <div id="promise-total-disp" style="font-size:22px;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif;min-height:32px;">—</div>
           <div class="promise-unit">円</div>
         </div>
         <div class="promise-cell" onclick="activateMoneyInput('f-promise')" style="cursor:text;">
           <label class="promise-lbl">実績金額</label>
-          <div class="money-disp promise-disp" id="disp-f-promise" style="font-size:22px;">—</div>
-          <input type="number" id="f-promise" placeholder="0"
-            style="position:absolute;opacity:0;pointer-events:none;font-size:22px;font-weight:700;font-family:'Syne',sans-serif;width:80%;border:none;background:transparent;outline:none;color:var(--text);"
+          <div id="disp-f-promise" style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);min-height:32px;">—</div>
+          <input type="number" id="f-promise" placeholder="0" style="display:none;"
             oninput="onFieldInput('promise',this.value)"
             onblur="deactivateMoneyInput('f-promise')"/>
           <div class="promise-unit">円</div>
@@ -450,18 +447,16 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
       <div class="promise-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
         <div class="promise-cell" onclick="activateMoneyInput('np-team-promise')" style="cursor:text;">
           <label class="promise-lbl">チーム 目標金額</label>
-          <div class="money-disp promise-disp" id="disp-np-team-promise" style="font-size:22px;">—</div>
-          <input type="number" id="np-team-promise" placeholder="0"
-            style="position:absolute;opacity:0;pointer-events:none;font-size:22px;font-weight:700;font-family:'Syne',sans-serif;width:80%;border:none;background:transparent;outline:none;color:var(--text);"
+          <div id="disp-np-team-promise" style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);min-height:32px;">—</div>
+          <input type="number" id="np-team-promise" placeholder="0" style="display:none;"
             oninput="onNpTeamInput('teamPromise',this.value)"
             onblur="deactivateMoneyInput('np-team-promise')"/>
           <div class="promise-unit">円</div>
         </div>
         <div class="promise-cell" onclick="activateMoneyInput('np-team-adcost')" style="cursor:text;">
           <label class="promise-lbl">チーム 広告費</label>
-          <div class="money-disp promise-disp" id="disp-np-team-adcost" style="font-size:22px;">—</div>
-          <input type="number" id="np-team-adcost" placeholder="0"
-            style="position:absolute;opacity:0;pointer-events:none;font-size:22px;font-weight:700;font-family:'Syne',sans-serif;width:80%;border:none;background:transparent;outline:none;color:var(--text);"
+          <div id="disp-np-team-adcost" style="font-size:22px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);min-height:32px;">—</div>
+          <input type="number" id="np-team-adcost" placeholder="0" style="display:none;"
             oninput="onNpTeamInput('teamAdcost',this.value)"
             onblur="deactivateMoneyInput('np-team-adcost')"/>
           <div class="promise-unit">円</div>
@@ -774,18 +769,25 @@ function activateMoneyInput(id){
   const inp=document.getElementById(id);
   const disp=document.getElementById('disp-'+id);
   if(!inp||!disp)return;
-  inp.style.opacity='1';inp.style.pointerEvents='auto';
   disp.style.display='none';
+  inp.style.cssText='display:block;width:100%;font-size:22px;font-weight:700;font-family:Syne,sans-serif;border:none;background:transparent;outline:none;color:var(--text);padding:0;';
   inp.focus();inp.select();
 }
 function deactivateMoneyInput(id){
   const inp=document.getElementById(id);
   const disp=document.getElementById('disp-'+id);
   if(!inp||!disp)return;
-  inp.style.opacity='0';inp.style.pointerEvents='none';
+  inp.style.display='none';
   const v=N(inp.value);
   disp.textContent=v>0?v.toLocaleString():'—';
-  disp.style.display='flex';
+  disp.style.display='block';
+}
+function setMoneyDisp(id,v){
+  const n=N(v);
+  const inp=document.getElementById(id);
+  const disp=document.getElementById('disp-'+id);
+  if(inp){inp.value=n||'';inp.style.display='none';}
+  if(disp){disp.textContent=n>0?n.toLocaleString():'—';disp.style.display='block';}
 }
 function getTarget(k){
   const v=cd.targets?.[k];
@@ -1068,10 +1070,9 @@ async function renderNextPlan(){
             <label style="font-size:12px;color:var(--text2);flex:1;">${f.label}</label>
             <div style="display:flex;align-items:center;gap:4px;">
               ${f.isMoney?`
-                <div style="position:relative;cursor:text;" onclick="activateMoneyInput('np-${m.id}-${f.key}')">
-                  <div id="disp-np-${m.id}-${f.key}" style="font-size:15px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);min-width:100px;text-align:right;">${N(md[f.key])>0?N(md[f.key]).toLocaleString():'—'}</div>
-                  <input type="number" id="np-${m.id}-${f.key}" value="${md[f.key]??''}"
-                    style="position:absolute;inset:0;opacity:0;pointer-events:none;font-size:15px;font-weight:700;font-family:'Syne',sans-serif;width:100%;border:none;background:transparent;outline:none;text-align:right;color:var(--text);"
+                <div style="cursor:text;" onclick="activateMoneyInput('np-${m.id}-${f.key}')">
+                  <div id="disp-np-${m.id}-${f.key}" style="font-size:15px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);min-width:80px;text-align:right;">${N(md[f.key])>0?N(md[f.key]).toLocaleString():'—'}</div>
+                  <input type="number" id="np-${m.id}-${f.key}" value="${md[f.key]??''}" style="display:none;"
                     placeholder="0"
                     oninput="onNpMemberInput('${m.id}','${f.key}',this.value)"
                     onblur="deactivateMoneyInput('np-${m.id}-${f.key}')"/>
