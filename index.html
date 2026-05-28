@@ -191,6 +191,14 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
 .cmp-diff{font-size:12px;display:flex;align-items:center;gap:3px;margin-top:2px;}
 .chart-wrap{position:relative;width:100%;height:230px;margin-top:10px;}
 
+/* MONEY INPUT */
+.money-inp-wrap{position:relative;}
+.money-inp-wrap input{position:absolute;inset:0;opacity:0;pointer-events:none;font-size:1px;}
+.money-inp-wrap input.active-inp{opacity:1;pointer-events:auto;font-size:28px;font-weight:700;font-family:'Syne',sans-serif;background:transparent;border:none;outline:none;width:100%;color:var(--text);}
+.money-disp{font-size:28px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);line-height:1;cursor:text;min-height:38px;display:flex;align-items:center;}
+.promise-cell .money-disp{font-size:22px;min-height:32px;}
+.promise-cell .money-inp-wrap input.active-inp{font-size:22px;}
+
 /* TOAST */
 #toast{position:fixed;bottom:22px;right:22px;background:var(--surface);border:1px solid var(--border);border-radius:var(--radius);padding:10px 18px;font-size:13px;color:var(--text);box-shadow:0 8px 32px rgba(0,0,0,.12);transform:translateY(60px);opacity:0;transition:all .3s cubic-bezier(.23,1,.32,1);z-index:9999;display:flex;align-items:center;gap:8px;}
 #toast.show{transform:translateY(0);opacity:1;}
@@ -255,28 +263,37 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
       <div class="card-title">🏆 公約・広告費</div>
       <div class="card-sub">公約目標＋広告費＝目標金額。実績を入力すると進捗率が自動計算されます</div>
       <div class="promise-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
-        <div class="promise-cell">
+        <div class="promise-cell" onclick="activateMoneyInput('f-promise-tgt')" style="cursor:text;">
           <label class="promise-lbl">公約目標</label>
-          <input class="promise-inp" type="number" id="f-promise-tgt" placeholder="0" oninput="onFieldInput('promiseTgt',this.value)"/>
+          <div class="money-disp promise-disp" id="disp-f-promise-tgt" style="font-size:22px;">${N(0)>0?N(0).toLocaleString():'—'}</div>
+          <input type="number" id="f-promise-tgt" placeholder="0"
+            style="position:absolute;opacity:0;pointer-events:none;font-size:22px;font-weight:700;font-family:'Syne',sans-serif;width:80%;border:none;background:transparent;outline:none;color:var(--text);"
+            oninput="onFieldInput('promiseTgt',this.value)"
+            onblur="deactivateMoneyInput('f-promise-tgt')"/>
           <div class="promise-unit">円</div>
-          <div id="fmt-promise-tgt" style="font-size:11px;color:var(--accent);margin-top:2px;font-weight:500;"></div>
         </div>
-        <div class="promise-cell">
+        <div class="promise-cell" onclick="activateMoneyInput('f-adcost')" style="cursor:text;">
           <label class="promise-lbl">広告費用</label>
-          <input class="promise-inp" type="number" id="f-adcost" placeholder="0" oninput="onFieldInput('adcost',this.value)"/>
+          <div class="money-disp promise-disp" id="disp-f-adcost" style="font-size:22px;">—</div>
+          <input type="number" id="f-adcost" placeholder="0"
+            style="position:absolute;opacity:0;pointer-events:none;font-size:22px;font-weight:700;font-family:'Syne',sans-serif;width:80%;border:none;background:transparent;outline:none;color:var(--text);"
+            oninput="onFieldInput('adcost',this.value)"
+            onblur="deactivateMoneyInput('f-adcost')"/>
           <div class="promise-unit">円</div>
-          <div id="fmt-adcost" style="font-size:11px;color:var(--accent);margin-top:2px;font-weight:500;"></div>
         </div>
         <div class="promise-cell" style="background:var(--accent-light);border-color:rgba(90,79,212,.2);">
           <label class="promise-lbl" style="color:var(--accent);">目標金額（自動合算）</label>
-          <div class="promise-inp" id="promise-total-disp" style="font-size:22px;font-weight:700;color:var(--accent);">—</div>
+          <div id="promise-total-disp" style="font-size:22px;font-weight:700;color:var(--accent);font-family:'Syne',sans-serif;">—</div>
           <div class="promise-unit">円</div>
         </div>
-        <div class="promise-cell">
+        <div class="promise-cell" onclick="activateMoneyInput('f-promise')" style="cursor:text;">
           <label class="promise-lbl">実績金額</label>
-          <input class="promise-inp" type="number" id="f-promise" placeholder="0" oninput="onFieldInput('promise',this.value)"/>
+          <div class="money-disp promise-disp" id="disp-f-promise" style="font-size:22px;">—</div>
+          <input type="number" id="f-promise" placeholder="0"
+            style="position:absolute;opacity:0;pointer-events:none;font-size:22px;font-weight:700;font-family:'Syne',sans-serif;width:80%;border:none;background:transparent;outline:none;color:var(--text);"
+            oninput="onFieldInput('promise',this.value)"
+            onblur="deactivateMoneyInput('f-promise')"/>
           <div class="promise-unit">円</div>
-          <div id="fmt-promise" style="font-size:11px;color:var(--green);margin-top:2px;font-weight:500;"></div>
         </div>
         <div class="promise-cell" id="promise-rate-cell">
           <label class="promise-lbl">進捗率</label>
@@ -431,14 +448,22 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
       <div class="card-title">💰 チーム全体 目標</div>
       <div class="card-sub">チーム全体の目標金額と広告費を入力</div>
       <div class="promise-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
-        <div class="promise-cell">
+        <div class="promise-cell" onclick="activateMoneyInput('np-team-promise')" style="cursor:text;">
           <label class="promise-lbl">チーム 目標金額</label>
-          <input class="promise-inp" type="number" id="np-team-promise" placeholder="0" oninput="onNpTeamInput('teamPromise',this.value)"/>
+          <div class="money-disp promise-disp" id="disp-np-team-promise" style="font-size:22px;">—</div>
+          <input type="number" id="np-team-promise" placeholder="0"
+            style="position:absolute;opacity:0;pointer-events:none;font-size:22px;font-weight:700;font-family:'Syne',sans-serif;width:80%;border:none;background:transparent;outline:none;color:var(--text);"
+            oninput="onNpTeamInput('teamPromise',this.value)"
+            onblur="deactivateMoneyInput('np-team-promise')"/>
           <div class="promise-unit">円</div>
         </div>
-        <div class="promise-cell">
+        <div class="promise-cell" onclick="activateMoneyInput('np-team-adcost')" style="cursor:text;">
           <label class="promise-lbl">チーム 広告費</label>
-          <input class="promise-inp" type="number" id="np-team-adcost" placeholder="0" oninput="onNpTeamInput('teamAdcost',this.value)"/>
+          <div class="money-disp promise-disp" id="disp-np-team-adcost" style="font-size:22px;">—</div>
+          <input type="number" id="np-team-adcost" placeholder="0"
+            style="position:absolute;opacity:0;pointer-events:none;font-size:22px;font-weight:700;font-family:'Syne',sans-serif;width:80%;border:none;background:transparent;outline:none;color:var(--text);"
+            oninput="onNpTeamInput('teamAdcost',this.value)"
+            onblur="deactivateMoneyInput('np-team-adcost')"/>
           <div class="promise-unit">円</div>
         </div>
       </div>
@@ -651,9 +676,9 @@ async function switchSheet(){
   paintForm();updateTopbar();
 }
 function paintForm(){
-  setVal('f-promise-tgt',cd.promiseTgt);
-  setVal('f-promise',cd.promise);
-  setVal('f-adcost',cd.adcost);
+  setMoneyDisp('f-promise-tgt', cd.promiseTgt);
+  setMoneyDisp('f-adcost', cd.adcost);
+  setMoneyDisp('f-promise', cd.promise);
   updatePromiseRate();
   setVal('m-meeting-set',cd.meetingSet);
   setVal('m-meeting-done',cd.meetingDone);
@@ -672,17 +697,18 @@ function paintForm(){
   document.getElementById('next-kpi').value=cd.nextKpi||'';
   updateAuto();updateFunnelBars();renderKpi();renderImpr();
 }
+function setMoneyDisp(id,v){
+  const n=N(v);
+  const inp=document.getElementById(id);
+  const disp=document.getElementById('disp-'+id);
+  if(inp)inp.value=n||'';
+  if(disp)disp.textContent=n>0?n.toLocaleString():'—';
+}
 function updatePromiseRate(){
   const tgt=N(cd.promiseTgt), ad=N(cd.adcost), act=N(cd.promise);
   const total=tgt+ad;
-  // 各入力欄の下にカンマ付き金額を表示
-  setFmtDisp('fmt-promise-tgt', tgt);
-  setFmtDisp('fmt-adcost', ad);
-  setFmtDisp('fmt-promise', act);
-  // 目標金額合算表示
   const totalEl=document.getElementById('promise-total-disp');
   if(totalEl)totalEl.textContent=total>0?'¥'+total.toLocaleString():'—';
-  // 進捗率
   const rateEl=document.getElementById('promise-rate-disp');
   const cell=document.getElementById('promise-rate-cell');
   if(!rateEl)return;
@@ -691,11 +717,6 @@ function updatePromiseRate(){
   rateEl.textContent=rate+'';
   rateEl.style.color=rate>=100?'var(--green)':'var(--amber)';
   if(cell)cell.style.background=rate>=100?'var(--green-bg)':'var(--amber-bg)';
-}
-function setFmtDisp(id,v){
-  const el=document.getElementById(id);
-  if(!el)return;
-  el.textContent=v>0?'¥'+v.toLocaleString():'';
 }
 function setVal(id,v){
   const el=document.getElementById(id);
@@ -736,7 +757,36 @@ function updateAuto(){
   document.getElementById('m-entry-rate').textContent=dn>0?rnd(e/dn*100)+'':'—';
 }
 
-// ═══ TARGETS helper ═══
+// ═══ MONEY INPUT HELPER ═══
+// クリックで編集、フォーカスアウトでカンマ表示に戻る
+function moneyInputHtml(id,val,onInputFn,placeholder='0'){
+  const disp=N(val)>0?N(val).toLocaleString():'—';
+  return `
+    <div class="money-inp-wrap" id="wrap-${id}" onclick="activateMoneyInput('${id}')">
+      <div class="money-disp" id="disp-${id}">${disp}</div>
+      <input type="number" id="${id}" value="${N(val)||''}" placeholder="${placeholder}"
+        style="position:absolute;inset:0;opacity:0;pointer-events:none;font-size:22px;font-weight:700;font-family:'Syne',sans-serif;background:transparent;border:none;outline:none;width:100%;color:var(--text);"
+        oninput="${onInputFn}"
+        onblur="deactivateMoneyInput('${id}')"/>
+    </div>`;
+}
+function activateMoneyInput(id){
+  const inp=document.getElementById(id);
+  const disp=document.getElementById('disp-'+id);
+  if(!inp||!disp)return;
+  inp.style.opacity='1';inp.style.pointerEvents='auto';
+  disp.style.display='none';
+  inp.focus();inp.select();
+}
+function deactivateMoneyInput(id){
+  const inp=document.getElementById(id);
+  const disp=document.getElementById('disp-'+id);
+  if(!inp||!disp)return;
+  inp.style.opacity='0';inp.style.pointerEvents='none';
+  const v=N(inp.value);
+  disp.textContent=v>0?v.toLocaleString():'—';
+  disp.style.display='flex';
+}
 function getTarget(k){
   const v=cd.targets?.[k];
   return (v===''||v===undefined||v===null)?null:Number(v);
@@ -962,7 +1012,13 @@ let npMonth='';
 
 function onNpTeamInput(field,val){
   npData[field]=val===''?'':Number(val);
+  // チーム合計のカンマ表示更新
+  updateNpTeamFmt();
   saveNpData();
+}
+function updateNpTeamFmt(){
+  setMoneyDisp('np-team-promise', N(npData.teamPromise));
+  setMoneyDisp('np-team-adcost',  N(npData.teamAdcost));
 }
 function onNpMemberInput(mid,field,val){
   if(!npData.members[mid])npData.members[mid]={};
@@ -985,8 +1041,9 @@ async function renderNextPlan(){
   npData=loaded||{teamPromise:'',teamAdcost:'',members:{}};
 
   // チーム合計
-  setNpVal('np-team-promise',npData.teamPromise);
-  setNpVal('np-team-adcost',npData.teamAdcost);
+  setMoneyDisp('np-team-promise', npData.teamPromise);
+  setMoneyDisp('np-team-adcost', npData.teamAdcost);
+  updateNpTeamFmt();
 
   // メンバー別
   const grid=document.getElementById('np-member-grid');
@@ -999,8 +1056,8 @@ async function renderNextPlan(){
       </div>
       <div style="display:flex;flex-direction:column;gap:8px;">
         ${[
-          {key:'promise',label:'公約金額',unit:'円'},
-          {key:'adcost', label:'広告費',  unit:'円'},
+          {key:'promise',label:'公約金額',unit:'円',isMoney:true},
+          {key:'adcost', label:'広告費',  unit:'円',isMoney:true},
           {key:'meetingSet', label:'面談獲得数目標',unit:'件'},
           {key:'meetingDone',label:'面談実施数目標',unit:'件'},
           {key:'meetingRate',label:'面談実施率目標',unit:'%'},
@@ -1010,12 +1067,23 @@ async function renderNextPlan(){
           <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
             <label style="font-size:12px;color:var(--text2);flex:1;">${f.label}</label>
             <div style="display:flex;align-items:center;gap:4px;">
-              <input type="number" value="${md[f.key]??''}"
-                style="width:90px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;text-align:right;outline:none;font-family:'Syne',sans-serif;"
-                placeholder="0"
-                oninput="onNpMemberInput('${m.id}','${f.key}',this.value)"
-                onfocus="this.style.borderColor='var(--accent)'"
-                onblur="this.style.borderColor='var(--border)'"/>
+              ${f.isMoney?`
+                <div style="position:relative;cursor:text;" onclick="activateMoneyInput('np-${m.id}-${f.key}')">
+                  <div id="disp-np-${m.id}-${f.key}" style="font-size:15px;font-weight:700;font-family:'Syne',sans-serif;color:var(--text);min-width:100px;text-align:right;">${N(md[f.key])>0?N(md[f.key]).toLocaleString():'—'}</div>
+                  <input type="number" id="np-${m.id}-${f.key}" value="${md[f.key]??''}"
+                    style="position:absolute;inset:0;opacity:0;pointer-events:none;font-size:15px;font-weight:700;font-family:'Syne',sans-serif;width:100%;border:none;background:transparent;outline:none;text-align:right;color:var(--text);"
+                    placeholder="0"
+                    oninput="onNpMemberInput('${m.id}','${f.key}',this.value)"
+                    onblur="deactivateMoneyInput('np-${m.id}-${f.key}')"/>
+                </div>
+              `:`
+                <input type="number" value="${md[f.key]??''}"
+                  style="width:80px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;text-align:right;outline:none;font-family:'Syne',sans-serif;"
+                  placeholder="0"
+                  oninput="onNpMemberInput('${m.id}','${f.key}',this.value)"
+                  onfocus="this.style.borderColor='var(--accent)'"
+                  onblur="this.style.borderColor='var(--border)'"/>
+              `}
               <span style="font-size:11px;color:var(--text3);width:16px;">${f.unit}</span>
             </div>
           </div>`).join('')}
