@@ -211,6 +211,7 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
   <div class="nav-item" data-page="kpi" onclick="switchPage('kpi',this)"><span class="nav-icon">📋</span>KPI一覧</div>
   <div class="nav-item" data-page="team" onclick="switchPage('team',this)"><span class="nav-icon">👥</span>チーム全体</div>
   <div class="nav-item" data-page="compare" onclick="switchPage('compare',this)"><span class="nav-icon">🔁</span>前月比較</div>
+  <div class="nav-item" data-page="nextplan" onclick="switchPage('nextplan',this)"><span class="nav-icon">📅</span>次月計画</div>
   <div class="sb-members">
     <div class="sb-sec-m">MEMBER</div>
     <div class="member-list" id="member-list"></div>
@@ -252,12 +253,22 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
 
     <div class="card">
       <div class="card-title">🏆 公約・広告費</div>
-      <div class="card-sub">今月の公約金額と広告費を入力</div>
-      <div class="promise-grid">
+      <div class="card-sub">今月の公約・広告費の目標と実績を入力</div>
+      <div class="promise-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
         <div class="promise-cell">
-          <label class="promise-lbl">公約金額</label>
+          <label class="promise-lbl">公約 目標金額</label>
+          <input class="promise-inp" type="number" id="f-promise-tgt" placeholder="0" oninput="onFieldInput('promiseTgt',this.value)"/>
+          <div class="promise-unit">円</div>
+        </div>
+        <div class="promise-cell">
+          <label class="promise-lbl">公約 実績金額</label>
           <input class="promise-inp" type="number" id="f-promise" placeholder="0" oninput="onFieldInput('promise',this.value)"/>
           <div class="promise-unit">円</div>
+        </div>
+        <div class="promise-cell" id="promise-rate-cell" style="background:var(--surface3);">
+          <label class="promise-lbl">達成率</label>
+          <div class="promise-inp" id="promise-rate-disp" style="font-size:22px;font-weight:700;color:var(--text);">—</div>
+          <div class="promise-unit">%</div>
         </div>
         <div class="promise-cell">
           <label class="promise-lbl">広告費用</label>
@@ -319,7 +330,7 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
 
     <div class="card">
       <div class="card-title">🔽 成果フロー分解</div>
-      <div class="card-sub">当月の各工程通過人数と歩留り（自動計算）</div>
+      <div class="card-sub">面談数・エントリー数はサマリーから自動反映。その他は手動入力</div>
       <div id="funnel-list"></div>
     </div>
 
@@ -355,7 +366,9 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
           <thead>
             <tr>
               <th>メンバー</th>
-              <th>公約金額</th>
+              <th>公約 目標</th>
+              <th>公約 実績</th>
+              <th>達成率</th>
               <th>広告費</th>
               <th>面談獲得</th>
               <th>面談実施</th>
@@ -399,6 +412,39 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
       <div class="chart-wrap"><canvas id="trend-chart"></canvas></div>
     </div>
   </div>
+
+  <!-- 次月計画 -->
+  <div class="page" id="page-nextplan">
+    <div class="card">
+      <div class="card-title">📅 次月計画 — チーム全体</div>
+      <div class="card-sub" id="nextplan-sub">翌月のチーム目標金額・広告費・各メンバーのKPI目標を設定</div>
+    </div>
+
+    <!-- チーム合計目標 -->
+    <div class="card">
+      <div class="card-title">💰 チーム全体 目標</div>
+      <div class="card-sub">チーム全体の目標金額と広告費を入力</div>
+      <div class="promise-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
+        <div class="promise-cell">
+          <label class="promise-lbl">チーム 目標金額</label>
+          <input class="promise-inp" type="number" id="np-team-promise" placeholder="0" oninput="onNpTeamInput('teamPromise',this.value)"/>
+          <div class="promise-unit">円</div>
+        </div>
+        <div class="promise-cell">
+          <label class="promise-lbl">チーム 広告費</label>
+          <input class="promise-inp" type="number" id="np-team-adcost" placeholder="0" oninput="onNpTeamInput('teamAdcost',this.value)"/>
+          <div class="promise-unit">円</div>
+        </div>
+      </div>
+    </div>
+
+    <!-- メンバー別目標 -->
+    <div class="card">
+      <div class="card-title">👤 メンバー別 目標</div>
+      <div class="card-sub">各メンバーの来月の目標を設定</div>
+      <div id="np-member-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;"></div>
+    </div>
+  </div>
 </div>
 </div>
 
@@ -438,12 +484,13 @@ const rnd=v=>Math.round(v);
 const esc=s=>String(s||'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 const sKey=(m,mo)=>`${m}__${mo}`;
 const blank=()=>({
-  promise:'',adcost:'',
+  promise:'',promiseTgt:'',adcost:'',
   meetingSet:'',meetingDone:'',entry:'',
   targets:{meetingSet:'',meetingDone:'',meetingRate:'',entryRate:'',finalRate:''},
   funnel:FUNNEL_STAGES.reduce((o,s)=>(o[s.key]='',o),{}),
   improvements:{},nextCommitment:'',nextKpi:''
 });
+const npKey=mo=>`__nextplan__${mo}`;
 
 // ═══ FIREBASE ═══
 async function remoteGet(key){
@@ -583,38 +630,51 @@ function switchPage(p,el){
   if(p==='kpi')renderKpiTable();
   if(p==='team')renderTeam();
   if(p==='compare'){renderCompare();renderTrendChart();}
+  if(p==='nextplan')renderNextPlan();
 }
 
 // ═══ SHEET ═══
 async function switchSheet(){
   const loaded=await loadSheet(cm,document.getElementById('month-select').value);
   cd=loaded||blank();
-  // 旧データ互換（targetsがない場合）
   if(!cd.targets)cd.targets={meetingSet:'',meetingDone:'',meetingRate:'',entryRate:'',finalRate:''};
   if(cd.promise===undefined)cd.promise='';
+  if(cd.promiseTgt===undefined)cd.promiseTgt='';
   if(cd.adcost===undefined)cd.adcost='';
+  if(!cd.funnel)cd.funnel=FUNNEL_STAGES.reduce((o,s)=>(o[s.key]='',o),{});
   paintForm();updateTopbar();
 }
 function paintForm(){
-  // promise / adcost
+  setVal('f-promise-tgt',cd.promiseTgt);
   setVal('f-promise',cd.promise);
   setVal('f-adcost',cd.adcost);
-  // summary
+  updatePromiseRate();
   setVal('m-meeting-set',cd.meetingSet);
   setVal('m-meeting-done',cd.meetingDone);
   setVal('m-entry',cd.entry);
-  // targets
   setVal('tgt-meetingSet', cd.targets?.meetingSet);
   setVal('tgt-meetingDone',cd.targets?.meetingDone);
   setVal('tgt-meetingRate',cd.targets?.meetingRate);
   setVal('tgt-entryRate',  cd.targets?.entryRate);
   setVal('tgt-finalRate',  cd.targets?.finalRate);
-  // funnel
-  FUNNEL_STAGES.forEach(s=>setVal('fi-'+s.key,cd.funnel?.[s.key]));
-  // textarea
+  FUNNEL_STAGES.forEach(s=>{
+    if(s.key==='meeting'){setVal('fi-meeting',cd.meetingDone);}
+    else if(s.key==='entry'){setVal('fi-entry',cd.entry);}
+    else{setVal('fi-'+s.key,cd.funnel?.[s.key]);}
+  });
   document.getElementById('next-commitment').value=cd.nextCommitment||'';
   document.getElementById('next-kpi').value=cd.nextKpi||'';
   updateAuto();updateFunnelBars();renderKpi();renderImpr();
+}
+function updatePromiseRate(){
+  const tgt=N(cd.promiseTgt),act=N(cd.promise);
+  const el=document.getElementById('promise-rate-disp');
+  const cell=document.getElementById('promise-rate-cell');
+  if(!tgt){el.textContent='—';cell.style.background='var(--surface3)';return;}
+  const rate=rnd(act/tgt*100);
+  el.textContent=rate+'';
+  el.style.color=rate>=100?'var(--green)':'var(--amber)';
+  cell.style.background=rate>=100?'var(--green-bg)':'var(--amber-bg)';
 }
 function setVal(id,v){
   const el=document.getElementById(id);
@@ -624,13 +684,20 @@ function setVal(id,v){
 // ═══ INPUTS ═══
 function onFieldInput(field,val){
   cd[field]=val===''?'':Number(val);
+  if(field==='promise'||field==='promiseTgt')updatePromiseRate();
   triggerAutoSave();
 }
 function onNumInput(){
   cd.meetingSet =nob('m-meeting-set');
   cd.meetingDone=nob('m-meeting-done');
   cd.entry      =nob('m-entry');
-  updateAuto();renderKpi();renderImpr();triggerAutoSave();
+  cd.funnel['meeting']=cd.meetingDone;
+  cd.funnel['entry']=cd.entry;
+  if(!isEditing){
+    setVal('fi-meeting',cd.meetingDone);
+    setVal('fi-entry',cd.entry);
+  }
+  updateAuto();updateFunnelBars();renderKpi();renderImpr();triggerAutoSave();
 }
 function onTgtInput(){
   if(!cd.targets)cd.targets={};
@@ -741,31 +808,42 @@ async function renderKpiTable(){
   const er=d=>{const dn=N(d?.meetingDone),e=N(d?.entry);return dn>0?rnd(e/dn*100):0;};
   const mr=d=>{const s=N(d?.meetingSet),dn=N(d?.meetingDone);return s>0?rnd(dn/s*100):0;};
   const fr=d=>{const m=N(d?.funnel?.meeting),f=N(d?.funnel?.final);return m>0?rnd(f/m*100):0;};
+  const fmtY=v=>v?'¥'+Number(v).toLocaleString():'—';
+  const rateBadge=(actual,tgt)=>{
+    if(!tgt||tgt==='')return '<span style="color:var(--text3);font-size:12px;">—</span>';
+    const r=rnd(N(actual)/N(tgt)*100);
+    const col=r>=100?'var(--green)':'var(--amber)';
+    const bg=r>=100?'#C8F5E2':'#FFE8A0';
+    return `<span style="background:${bg};color:${col};font-size:11px;font-weight:700;padding:2px 7px;border-radius:999px;">${r}%${r>=100?' 👌':''}</span>`;
+  };
   tbody.innerHTML=MEMBERS.map((m,i)=>{
     const d=allData[i]||blank();
     const has=!!(N(d.meetingSet)||N(d.meetingDone)||N(d.entry));
     const tgts=d.targets||{};
-    const vals=[
-      {v:d.promise?'¥'+Number(d.promise).toLocaleString():'—',raw:N(d.promise),tgt:null,suffix:'円',plain:true},
-      {v:d.adcost?'¥'+Number(d.adcost).toLocaleString():'—',raw:N(d.adcost),tgt:null,suffix:'円',plain:true},
-      {v:N(d.meetingSet),tgt:tgts.meetingSet,suffix:'件'},
-      {v:N(d.meetingDone),tgt:tgts.meetingDone,suffix:'件'},
-      {v:mr(d),tgt:tgts.meetingRate,suffix:'%'},
-      {v:N(d.entry),tgt:null,suffix:'件'},
-      {v:er(d),tgt:tgts.entryRate,suffix:'%'},
-      {v:N(d.funnel?.final)||0,tgt:null,suffix:'人'},
-      {v:fr(d),tgt:tgts.finalRate,suffix:'%'}
+    const promiseRate=N(d.promiseTgt)>0?rnd(N(d.promise)/N(d.promiseTgt)*100):null;
+    const promiseBg=promiseRate===null?'':promiseRate>=100?'var(--green-bg)':'var(--amber-bg)';
+    const kpiCols=[
+      {val:N(d.meetingSet),  tgt:tgts.meetingSet,  sx:'件'},
+      {val:N(d.meetingDone), tgt:tgts.meetingDone, sx:'件'},
+      {val:mr(d),            tgt:tgts.meetingRate, sx:'%'},
+      {val:N(d.entry),       tgt:null,              sx:'件'},
+      {val:er(d),            tgt:tgts.entryRate,   sx:'%'},
+      {val:N(d.funnel?.final)||0, tgt:null,         sx:'人'},
+      {val:fr(d),            tgt:tgts.finalRate,   sx:'%'}
     ];
     return `<tr>
       <td><div class="kpi-member-cell"><div class="mavatar" style="background:${m.bg};color:${m.color};width:24px;height:24px;font-size:10px;">${m.initial}</div>${m.name}</div></td>
-      ${vals.map(item=>{
-        if(item.plain)return `<td><span class="kpi-num none">${item.v}</span></td>`;
-        const tgt=item.tgt!==undefined&&item.tgt!==''&&item.tgt!==null?Number(item.tgt):null;
-        const hit=has&&tgt!==null&&item.v>=tgt;
-        const miss=has&&tgt!==null&&item.v<tgt;
+      <td><span class="kpi-num none">${fmtY(d.promiseTgt)}</span></td>
+      <td><span class="kpi-num none">${fmtY(d.promise)}</span></td>
+      <td style="background:${promiseBg}">${rateBadge(d.promise,d.promiseTgt)}</td>
+      <td><span class="kpi-num none">${fmtY(d.adcost)}</span></td>
+      ${kpiCols.map(c=>{
+        const tgt=c.tgt!==undefined&&c.tgt!==''&&c.tgt!==null?Number(c.tgt):null;
+        const hit=has&&tgt!==null&&c.val>=tgt;
+        const miss=has&&tgt!==null&&c.val<tgt;
         const cls=hit?'hit':miss?'miss':'none';
-        const badge=hit?'<span class="kpi-badge-sm hit">👌</span>':miss?'<span class="kpi-badge-sm miss">未達</span>':'';
-        return `<td><span class="kpi-num ${cls}">${has?item.v+'<span style="font-size:10px">'+item.suffix+'</span>':'—'}</span>${badge}</td>`;
+        const badge=tgt!==null?rateBadge(c.val,tgt):'';
+        return `<td><div style="display:flex;align-items:center;gap:4px;flex-wrap:wrap;"><span class="kpi-num ${cls}">${has?c.val+c.sx:'—'}</span>${badge}</div></td>`;
       }).join('')}
     </tr>`;
   }).join('');
@@ -856,7 +934,77 @@ async function renderTrendChart(){
   });
 }
 
-// ═══ TOAST ═══
+// ═══ NEXT PLAN ═══
+let npData={teamPromise:'',teamAdcost:'',members:{}};
+let npMonth='';
+
+function onNpTeamInput(field,val){
+  npData[field]=val===''?'':Number(val);
+  saveNpData();
+}
+function onNpMemberInput(mid,field,val){
+  if(!npData.members[mid])npData.members[mid]={};
+  npData.members[mid][field]=val===''?'':Number(val);
+  saveNpData();
+}
+async function saveNpData(){
+  await saveSheetRemote('__team__',npMonth+'_nextplan',npData);
+}
+async function renderNextPlan(){
+  const month=document.getElementById('month-select').value;
+  // 次月を計算
+  const[y,mo]=month.split('-').map(Number);
+  const nd=new Date(y,mo,1);
+  npMonth=`${nd.getFullYear()}-${String(nd.getMonth()+1).padStart(2,'0')}`;
+  document.getElementById('nextplan-sub').textContent=`${npMonth.replace('-','年')}月の計画（現在: ${month.replace('-','年')}月）`;
+
+  // データ読込
+  const loaded=await loadSheet('__team__',npMonth+'_nextplan');
+  npData=loaded||{teamPromise:'',teamAdcost:'',members:{}};
+
+  // チーム合計
+  setNpVal('np-team-promise',npData.teamPromise);
+  setNpVal('np-team-adcost',npData.teamAdcost);
+
+  // メンバー別
+  const grid=document.getElementById('np-member-grid');
+  grid.innerHTML=MEMBERS.map(m=>{
+    const md=npData.members[m.id]||{};
+    return `<div style="background:var(--surface2);border:1px solid var(--border);border-radius:var(--radius-lg);padding:16px 18px;">
+      <div style="display:flex;align-items:center;gap:8px;margin-bottom:14px;padding-bottom:10px;border-bottom:1px solid var(--border);">
+        <div class="mavatar" style="background:${m.bg};color:${m.color};">${m.initial}</div>
+        <span style="font-weight:700;font-size:14px;">${m.name}</span>
+      </div>
+      <div style="display:flex;flex-direction:column;gap:8px;">
+        ${[
+          {key:'promise',label:'公約金額',unit:'円'},
+          {key:'adcost', label:'広告費',  unit:'円'},
+          {key:'meetingSet', label:'面談獲得数目標',unit:'件'},
+          {key:'meetingDone',label:'面談実施数目標',unit:'件'},
+          {key:'meetingRate',label:'面談実施率目標',unit:'%'},
+          {key:'entryRate',  label:'エントリー率目標',unit:'%'},
+          {key:'finalRate',  label:'最終選考率目標',unit:'%'}
+        ].map(f=>`
+          <div style="display:flex;align-items:center;justify-content:space-between;gap:8px;">
+            <label style="font-size:12px;color:var(--text2);flex:1;">${f.label}</label>
+            <div style="display:flex;align-items:center;gap:4px;">
+              <input type="number" value="${md[f.key]??''}"
+                style="width:90px;padding:5px 8px;border:1px solid var(--border);border-radius:6px;font-size:13px;font-weight:600;text-align:right;outline:none;font-family:'Syne',sans-serif;"
+                placeholder="0"
+                oninput="onNpMemberInput('${m.id}','${f.key}',this.value)"
+                onfocus="this.style.borderColor='var(--accent)'"
+                onblur="this.style.borderColor='var(--border)'"/>
+              <span style="font-size:11px;color:var(--text3);width:16px;">${f.unit}</span>
+            </div>
+          </div>`).join('')}
+      </div>
+    </div>`;
+  }).join('');
+}
+function setNpVal(id,v){
+  const el=document.getElementById(id);
+  if(el)el.value=(v===''||v===null||v===undefined)?'':v;
+}
 function showToast(type,msg){
   const t=document.getElementById('toast');
   document.getElementById('toast-msg').textContent=msg;
