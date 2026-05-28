@@ -253,27 +253,32 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
 
     <div class="card">
       <div class="card-title">🏆 公約・広告費</div>
-      <div class="card-sub">今月の公約・広告費の目標と実績を入力</div>
+      <div class="card-sub">公約目標＋広告費＝目標金額。実績を入力すると進捗率が自動計算されます</div>
       <div class="promise-grid" style="grid-template-columns:repeat(auto-fit,minmax(160px,1fr));">
         <div class="promise-cell">
-          <label class="promise-lbl">公約 目標金額</label>
+          <label class="promise-lbl">公約目標</label>
           <input class="promise-inp" type="number" id="f-promise-tgt" placeholder="0" oninput="onFieldInput('promiseTgt',this.value)"/>
           <div class="promise-unit">円</div>
-        </div>
-        <div class="promise-cell">
-          <label class="promise-lbl">公約 実績金額</label>
-          <input class="promise-inp" type="number" id="f-promise" placeholder="0" oninput="onFieldInput('promise',this.value)"/>
-          <div class="promise-unit">円</div>
-        </div>
-        <div class="promise-cell" id="promise-rate-cell" style="background:var(--surface3);">
-          <label class="promise-lbl">達成率</label>
-          <div class="promise-inp" id="promise-rate-disp" style="font-size:22px;font-weight:700;color:var(--text);">—</div>
-          <div class="promise-unit">%</div>
         </div>
         <div class="promise-cell">
           <label class="promise-lbl">広告費用</label>
           <input class="promise-inp" type="number" id="f-adcost" placeholder="0" oninput="onFieldInput('adcost',this.value)"/>
           <div class="promise-unit">円</div>
+        </div>
+        <div class="promise-cell" style="background:var(--accent-light);border-color:rgba(90,79,212,.2);">
+          <label class="promise-lbl" style="color:var(--accent);">目標金額（自動合算）</label>
+          <div class="promise-inp" id="promise-total-disp" style="font-size:22px;font-weight:700;color:var(--accent);">—</div>
+          <div class="promise-unit">円</div>
+        </div>
+        <div class="promise-cell">
+          <label class="promise-lbl">実績金額</label>
+          <input class="promise-inp" type="number" id="f-promise" placeholder="0" oninput="onFieldInput('promise',this.value)"/>
+          <div class="promise-unit">円</div>
+        </div>
+        <div class="promise-cell" id="promise-rate-cell">
+          <label class="promise-lbl">進捗率</label>
+          <div class="promise-inp" id="promise-rate-disp" style="font-size:22px;font-weight:700;">—</div>
+          <div class="promise-unit">%</div>
         </div>
       </div>
     </div>
@@ -366,8 +371,8 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
           <thead>
             <tr>
               <th>メンバー</th>
-              <th>公約 目標</th>
-              <th>公約 実績</th>
+              <th>目標金額<br><span style="font-weight:400;font-size:10px;">公約目標＋広告費</span></th>
+              <th>実績金額</th>
               <th>達成率</th>
               <th>広告費</th>
               <th>面談獲得</th>
@@ -665,14 +670,20 @@ function paintForm(){
   updateAuto();updateFunnelBars();renderKpi();renderImpr();
 }
 function updatePromiseRate(){
-  const tgt=N(cd.promiseTgt),act=N(cd.promise);
-  const el=document.getElementById('promise-rate-disp');
+  const tgt=N(cd.promiseTgt), ad=N(cd.adcost), act=N(cd.promise);
+  const total=tgt+ad;
+  // 目標金額合算表示
+  const totalEl=document.getElementById('promise-total-disp');
+  if(totalEl)totalEl.textContent=total>0?'¥'+total.toLocaleString():'—';
+  // 進捗率
+  const rateEl=document.getElementById('promise-rate-disp');
   const cell=document.getElementById('promise-rate-cell');
-  if(!tgt){el.textContent='—';cell.style.background='var(--surface3)';return;}
-  const rate=rnd(act/tgt*100);
-  el.textContent=rate+'';
-  el.style.color=rate>=100?'var(--green)':'var(--amber)';
-  cell.style.background=rate>=100?'var(--green-bg)':'var(--amber-bg)';
+  if(!rateEl)return;
+  if(!total){rateEl.textContent='—';rateEl.style.color='var(--text)';if(cell)cell.style.background='var(--surface2)';return;}
+  const rate=rnd(act/total*100);
+  rateEl.textContent=rate+'';
+  rateEl.style.color=rate>=100?'var(--green)':'var(--amber)';
+  if(cell)cell.style.background=rate>=100?'var(--green-bg)':'var(--amber-bg)';
 }
 function setVal(id,v){
   const el=document.getElementById(id);
@@ -818,7 +829,8 @@ async function renderKpiTable(){
     const d=allData[i]||blank();
     const has=!!(N(d.meetingSet)||N(d.meetingDone)||N(d.entry));
     const tgts=d.targets||{};
-    const promiseRate=N(d.promiseTgt)>0?rnd(N(d.promise)/N(d.promiseTgt)*100):null;
+    const promiseTotal=N(d.promiseTgt)+N(d.adcost);
+    const promiseRate=promiseTotal>0?rnd(N(d.promise)/promiseTotal*100):null;
     const promiseBg=promiseRate===null?'':promiseRate>=100?'var(--green-bg)':'var(--amber-bg)';
     const kpiCols=[
       {val:N(d.meetingSet),  tgt:tgts.meetingSet,  sx:'件'},
@@ -831,9 +843,9 @@ async function renderKpiTable(){
     ];
     return `<tr>
       <td><div class="kpi-member-cell"><div class="mavatar" style="background:${m.bg};color:${m.color};width:24px;height:24px;font-size:10px;">${m.initial}</div>${m.name}</div></td>
-      <td><span class="kpi-num none">${fmtY(d.promiseTgt)}</span></td>
+      <td><span class="kpi-num none">${promiseTotal>0?'¥'+promiseTotal.toLocaleString():'—'}</span></td>
       <td><span class="kpi-num none">${fmtY(d.promise)}</span></td>
-      <td style="background:${promiseBg}">${rateBadge(d.promise,d.promiseTgt)}</td>
+      <td style="background:${promiseBg}">${rateBadge(d.promise,promiseTotal||null)}</td>
       <td><span class="kpi-num none">${fmtY(d.adcost)}</span></td>
       ${kpiCols.map(c=>{
         const tgt=c.tgt!==undefined&&c.tgt!==''&&c.tgt!==null?Number(c.tgt):null;
