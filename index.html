@@ -419,8 +419,6 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
       <div class="card-title">📅 次月計画 — チーム全体</div>
       <div class="card-sub" id="nextplan-sub">翌月のチーム目標金額・広告費・各メンバーのKPI目標を設定</div>
     </div>
-
-    <!-- チーム合計目標 -->
     <div class="card">
       <div class="card-title">💰 チーム全体 目標</div>
       <div class="card-sub">チーム全体の目標金額と広告費を入力</div>
@@ -437,16 +435,15 @@ select.month-sel:focus{outline:none;border-color:var(--accent);}
         </div>
       </div>
     </div>
-
-    <!-- メンバー別目標 -->
     <div class="card">
       <div class="card-title">👤 メンバー別 目標</div>
       <div class="card-sub">各メンバーの来月の目標を設定</div>
       <div id="np-member-grid" style="display:grid;grid-template-columns:repeat(auto-fit,minmax(300px,1fr));gap:14px;"></div>
     </div>
   </div>
-</div>
-</div>
+
+</div><!-- /#main -->
+</div><!-- /#app -->
 
 <div id="toast"><span id="toast-msg"></span></div>
 
@@ -624,8 +621,9 @@ function switchPage(p,el){
   document.querySelectorAll('.nav-item').forEach(n=>n.classList.remove('active'));
   el.classList.add('active');
   document.querySelectorAll('.page').forEach(pg=>pg.classList.remove('active'));
-  document.getElementById('page-'+p).classList.add('active');
-  const t={input:'入力',kpi:'KPI一覧',team:'チーム全体',compare:'前月比較'};
+  const pageEl=document.getElementById('page-'+p);
+  if(pageEl)pageEl.classList.add('active');
+  const t={input:'入力',kpi:'KPI一覧',team:'チーム全体',compare:'前月比較',nextplan:'次月計画'};
   document.getElementById('topbar-title').textContent=t[p]||p;
   if(p==='kpi')renderKpiTable();
   if(p==='team')renderTeam();
